@@ -1,0 +1,4 @@
+telegram_bot_token: "your-token" # just write here your token
+telegram_chat_id: "111111" # just write your chat id
+telegram_message_format: "[MC] {player}: {message}" # just write your messages format.
+minecraft_telegram_format: "[TG] {telegram_name}: {telegram_message}"

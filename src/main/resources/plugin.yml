@@ -1,0 +1,18 @@
+name: FlorestTelegramPRO
+version: '1.0-test'
+main: ru.florestdev.florestTelegramPRO.FlorestTelegramPRO
+api-version: '1.21'
+prefix: [ FlorestTelegram ]
+load: STARTUP
+authors: [ FlorestDev ]
+description: Just a plugin for Telegram chat sending from Minecraft.
+commands:
+  reloadconfig:
+    description: "Just reloading the config."
+    usage: /reloadconfig
+    permission: floresttelegram.admin
+    permission-message: You haven't got the floresttelegram.admin permission.
+permissions:
+  floresttelegram.admins:
+    description: Just admins' permissions for this plugin.
+    default: op
