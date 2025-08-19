@@ -1,0 +1,29 @@
+telegram_bot_token: "your-token" # just write here your token
+telegram_chat_id: "your-chat-id" # just write your chat id
+telegram_message_format: "[MC] {player}: {message}" # just write your messages format.
+minecraft_telegram_format: "[TG] {telegram_name}: {telegram_message}"
+
+# On server starting/stopping.
+hello_message: "Hello, buddy! You're cool."
+goodbye_message: "Hey! Server is offline. Sadly. Was players count: {was_players}" # you must write {was_players}
+
+# Commands' settings.
+you_havent_got_permission: "{user}, sorry, but you haven't got permissions in group to do that." # you must write {user}.
+command_sent_message: "{user}, sent your command to the Minecraft!" # you must write {user}.
+command_was_banned: "{user}, sorry, but this command was banned by config.yml." # you must write {user}.
+commands_was_disabled: "{user}, all commands was disabled on this server." # you must write {user}.
+banned_commands: # Write here your banned commands!
+  - '/example' # write all for disable this function
+
+# JOIN / LEAVE
+human_joined: "{user} joined our server." # you must write {user}.
+human_quited: "{user} quited our server. Sad." # you must write {user}.
+
+# For commands' tracking.
+processing_tracking_enable: false
+human_process_command: "{user} wrote this command: {command}" # you must write {user} and {command}
+whitelist_commands:
+  - 'all' # write all for enable all commands!
+
+blacklist_commands: # works if whitelist_commands = all
+  - '/msg'

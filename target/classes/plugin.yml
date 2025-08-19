@@ -1,0 +1,20 @@
+name: FlorestTelegramPRO
+version: '6.0-stable'
+main: ru.florestdev.florestTelegramPRO.FlorestTelegramPRO
+api-version: '1.21'
+prefix:  FlorestTelegram
+load: STARTUP
+authors: [ FlorestDev ]
+description: Just a plugin for Telegram chat sending from Minecraft.
+commands:
+  floresttelegram:
+    aliases:
+      - ftp
+    description: Main command of the plugin
+    permission-message: Нет права floresttelegram.admin
+    permission: floresttelegram.admin
+    usage: /floresttelegram <reload | close | open | ban | unban | mute | unmute>
+permissions:
+  floresttelegram.admin:
+    default: op
+    description: Главное разрешение плагина.
