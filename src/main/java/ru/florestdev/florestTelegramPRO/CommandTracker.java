@@ -16,28 +16,11 @@ public class CommandTracker implements Listener {
 
     private final Plugin plugin;
     private static final HttpClient httpClient = HttpClient.newHttpClient();
+    public final Methods methods;
 
-    public CommandTracker(Plugin plugin) {
+    public CommandTracker(Plugin plugin, Methods methods) {
         this.plugin = plugin;
-    }
-
-    public void SendTelegramFUNCTION(String botToken, String chatId, String message) throws IOException, InterruptedException {
-        // Функция для отправки сообщения в тг
-        String url = String.format("https://api.telegram.org/bot%s/sendMessage", botToken);
-        String requestBody = String.format("chat_id=%s&text=%s", chatId, message);
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .header("Content-Type", "application/x-www-form-urlencoded")
-                .header("User-Agent", "FlorestPlugin")
-                .POST(HttpRequest.BodyPublishers.ofString(requestBody))
-                .build();
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        if (response.statusCode() == 200) {
-            plugin.getLogger().info("Successful sending.");
-        }
-        else {
-            plugin.getLogger().info("Own bad! We can't send message to Telegram APIs.");
-        }
+        this.methods = methods;
     }
 
     public void register() {
@@ -64,7 +47,7 @@ public class CommandTracker implements Listener {
                         String chatId = plugin.getConfig().getString("telegram_chat_id");
                         String message = plugin.getConfig().getString("human_process_command").replace("{user}", event.getPlayer().getName()).replace("{command}", event.getMessage().split(" ")[0]);
                         try {
-                            SendTelegramFUNCTION(token, chatId, message);
+                            methods.SendTelegramFUNCTION(token, chatId, message);
                         } catch (IOException | InterruptedException e) {
                             // ...
                         }
@@ -75,7 +58,7 @@ public class CommandTracker implements Listener {
                         String chatId = plugin.getConfig().getString("telegram_chat_id");
                         String message = plugin.getConfig().getString("human_process_command").replace("{user}", event.getPlayer().getName()).replace("{command}", event.getMessage().split(" ")[0]);
                         try {
-                            SendTelegramFUNCTION(token, chatId, message);
+                            methods.SendTelegramFUNCTION(token, chatId, message);
                         } catch (IOException | InterruptedException e) {
                             // ...
                         }

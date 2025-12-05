@@ -1,7 +1,9 @@
 telegram_bot_token: "your-token" # just write here your token
 telegram_chat_id: "your-chat-id" # just write your chat id
-telegram_message_format: "[MC] {player}: {message}" # just write your messages format.
+telegram_message_format: "[MC] {player}: {message}" # just write your messages format. ({prefix} is optional)
 minecraft_telegram_format: "[TG] {telegram_name}: {telegram_message}"
+minecraft_telegram_format_with_reply: "[TG] {telegram_name}: {telegram_message}\n({author_reply} - {author_reply_message_id})"
+minecraft_telegram_edited_message: "[TG] {telegram_name} edited message: {telegram_message}"
 
 # On server starting/stopping.
 hello_message: "Hello, buddy! You're cool."
@@ -14,7 +16,43 @@ command_was_banned: "{user}, sorry, but this command was banned by config.yml." 
 commands_was_disabled: "{user}, all commands was disabled on this server." # you must write {user}.
 banned_commands: # Write here your banned commands!
   - '/example' # write all for disable this function
+additional_admins: # write admins' IDs, who haven't got permissions in group (admin's permissions).
+  - '111'
 
 # JOIN / LEAVE
-human_joined: "{user} joined our server." # you must write {user}.
-human_quited: "{user} quited our server. Sad." # you must write {user}.
+human_joined: "{user} joined our server." # you must write {user}. ({prefix} is optional)
+human_quited: "{user} quited our server. Sad." # you must write {user}. ({prefix} is optional)
+
+# For commands' tracking.
+processing_tracking_enable: false
+human_process_command: "{user} wrote this command: {command}" # you must write {user} and {command} ({prefix} is optional)
+whitelist_commands:
+  - 'all' # write all for enable all commands!
+
+blacklist_commands: # works if whitelist_commands = all
+  - '/msg'
+
+# For messages' restrictions
+enable_restrictions_for_messages: false
+prefix_for_minecraft: "#" # if message starts with this symbol, it will not send to Telegram.
+prefix_for_telegram: "#" # if message starts with this symbol, it will not send to Minecraft.
+
+# For players' advancements.
+enable_advancements: false # if false, we will not register new event.
+format_advancements: "{user} now has a new advancement: {advancement}" # you must write 2 placeholders.
+
+# For TPS' tracking.
+enable_tps_tracking: false
+tps_min: 15 # min TPS for tracking.
+message_tps_lagg: "Server started lagging! Now tps: {tps}" # you must write {tps}.
+
+# Players' command proccessor
+no_players_on_server: "Server has 0 players at the moment."
+players_msg_format: "Server has {online} / {max_players} at the moment.\n{players_nicknames}"
+
+support_prefix: false # if true, you must add {prefix} placeholder in all messages with players' actions. You must have LuckPerms on your server.
+support_replies_in_tg: false # if true, we can display about reply on Telegram message. new placeholders: {author_reply} + {author_reply_message_id}
+
+desc_editing_bool: false
+on_online_desc: "Time of last update: {time} | Online: {players_online}/{players_max}"
+off_desc: "Server was closed."

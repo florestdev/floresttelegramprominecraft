@@ -1,24 +1,29 @@
 package ru.florestdev.florestTelegramPRO;
+
+import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import com.google.gson.JsonParseException;
-import org.bukkit.Bukkit;
-import org.bukkit.command.ConsoleCommandSender;
-import org.bukkit.entity.Player;
-import org.bukkit.plugin.java.JavaPlugin;
+import com.google.gson.JsonParser;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.net.http.HttpRequest.BodyPublishers;
+import java.net.http.HttpResponse.BodyHandlers;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
-import com.google.gson.Gson;
+import java.util.Objects;
+import java.util.logging.Logger;
+import org.bukkit.Bukkit;
+import org.bukkit.command.ConsoleCommandSender;
+import org.bukkit.entity.Player;
+import org.bukkit.plugin.java.JavaPlugin;
 
 public class TelegramReciever {
-
     private final JavaPlugin plugin;
     private final String botToken;
     private int lastUpdateId = 0;
@@ -30,21 +35,19 @@ public class TelegramReciever {
     }
 
     public void SendTelegramFUNCTION(String botToken, String chatId, String message) throws IOException, InterruptedException {
-        // Функция для отправки сообщения в тг
         String url = String.format("https://api.telegram.org/bot%s/sendMessage", botToken);
         String requestBody = String.format("chat_id=%s&text=%s", chatId, message);
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
                 .header("Content-Type", "application/x-www-form-urlencoded")
                 .header("User-Agent", "FlorestPlugin")
-                .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+                .POST(BodyPublishers.ofString(requestBody))
                 .build();
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> response = this.httpClient.send(request, BodyHandlers.ofString());
         if (response.statusCode() == 200) {
-            plugin.getLogger().info("Successful sending.");
-        }
-        else {
-            plugin.getLogger().info("Own bad! We can't send message to Telegram APIs.");
+            this.plugin.getLogger().info("Successful sending.");
+        } else {
+            this.plugin.getLogger().info("Own bad! We can't send message to Telegram APIs.");
         }
     }
 
@@ -52,97 +55,102 @@ public class TelegramReciever {
         try {
             String url = String.format("https://api.telegram.org/bot%s/getChatMember", botToken);
             String requestBody = String.format("chat_id=%s&user_id=%s", chatId, userId);
-
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(url))
                     .header("Content-Type", "application/x-www-form-urlencoded")
                     .header("User-Agent", "FlorestPlugin")
-                    .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+                    .POST(BodyPublishers.ofString(requestBody))
                     .build();
-
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> response = this.httpClient.send(request, BodyHandlers.ofString());
             String responseBody = response.body();
-
             if (response.statusCode() == 200) {
                 Gson gson = new Gson();
-                JsonObject jsonObject = gson.fromJson(responseBody, JsonObject.class);
+                JsonObject jsonObject = (JsonObject) gson.fromJson(responseBody, JsonObject.class);
                 boolean ok = jsonObject.get("ok").getAsBoolean();
-
                 if (ok) {
                     JsonObject result = jsonObject.getAsJsonObject("result");
                     if (result != null) {
                         String status = result.get("status").getAsString();
                         if (status != null) {
                             boolean isAdmin = status.equals("administrator") || status.equals("creator");
-                            if (isAdmin && status.equals("administrator")) { // Проверяем is_anonymous только для администраторов (не для creator)
-                                if (result.has("is_anonymous")) { // Проверяем, существует ли поле is_anonymous
-                                    boolean isAnonymous = result.get("is_anonymous").getAsBoolean();
-                                    if (isAnonymous) {
-                                        plugin.getLogger().info("User " + userId + " is an anonymous admin.");
-                                        return true; // Считаем анонимного администратора не-админом в этом контексте.
-                                    }
-                                } else {
-                                    plugin.getLogger().warning("is_anonymous field is missing for admin " + userId);
-                                }
+                            if (isAdmin && status.equals("administrator") && result.has("is_anonymous") && result.get("is_anonymous").getAsBoolean()) {
+                                this.plugin.getLogger().info("User " + userId + " is an anonymous admin.");
+                                return true;
                             }
-                            return isAdmin; // Возвращаем true, если пользователь администратор (и не анонимный, если применимо), или если пользователь - создатель
-                        } else {
-                            plugin.getLogger().warning("Status field is null in getChatMember response.");
+                            return isAdmin;
                         }
+                        this.plugin.getLogger().warning("Status field is null in getChatMember response.");
                     } else {
-                        plugin.getLogger().warning("Result field is null in getChatMember response.");
+                        this.plugin.getLogger().warning("Result field is null in getChatMember response.");
                     }
                 } else {
-                    plugin.getLogger().warning("getChatMember request failed (ok=false): " + responseBody);
+                    this.plugin.getLogger().warning("getChatMember request failed (ok=false): " + responseBody);
                 }
             } else {
-                plugin.getLogger().warning("getChatMember request failed: " + response.statusCode() + ", " + responseBody);
+                this.plugin.getLogger().warning("getChatMember request failed: " + response.statusCode() + ", " + responseBody);
             }
-        } catch (IOException | InterruptedException e) {
-            plugin.getLogger().severe("Error while checking if user is admin: " + e.getMessage());
+        } catch (InterruptedException | IOException e) {
+            this.plugin.getLogger().severe("Error while checking if user is admin: " + e.getMessage());
         }
-        return false; // Произошла ошибка или пользователь не является администратором
+        return false;
     }
 
     public List<String> getBannedCommands() {
-        return plugin.getConfig().getStringList("banned_commands");
+        return this.plugin.getConfig().getStringList("banned_commands");
     }
 
     public String getChatID() {
-        return plugin.getConfig().getString("telegram_chat_id");
+        return this.plugin.getConfig().getString("telegram_chat_id");
     }
 
     public ConsoleCommandSender getCommandsSender() {
-        return plugin.getServer().getConsoleSender();
+        return this.plugin.getServer().getConsoleSender();
     }
 
     public List<String> getNewMessages() {
         List<String> messages = new ArrayList<>();
-        String url = String.format("https://api.telegram.org/bot%s/getUpdates?offset=%d", botToken, lastUpdateId + 1);
-
+        String url = String.format("https://api.telegram.org/bot%s/getUpdates?offset=%d", this.botToken, this.lastUpdateId + 1);
         try {
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .build();
-
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
+            HttpRequest request = HttpRequest.newBuilder().uri(URI.create(url)).build();
+            HttpResponse<String> response = this.httpClient.send(request, BodyHandlers.ofString());
             if (response.statusCode() == 200) {
                 String responseBody = response.body();
                 try {
                     JsonObject jsonResponse = JsonParser.parseString(responseBody).getAsJsonObject();
-
                     if (jsonResponse != null && jsonResponse.get("ok").getAsBoolean()) {
                         JsonArray updates = jsonResponse.getAsJsonArray("result");
-
                         if (updates != null) {
                             for (JsonElement updateElement : updates) {
                                 JsonObject update = updateElement.getAsJsonObject();
                                 if (update != null) {
                                     int updateId = update.get("update_id").getAsInt();
-                                    if (updateId > lastUpdateId) {
-                                        lastUpdateId = updateId;
+                                    if (updateId > this.lastUpdateId) {
+                                        this.lastUpdateId = updateId;
                                     }
+
+                                    // ---- обработка edited_message ----
+                                    if (update.has("edited_message")) {
+                                        JsonObject edited = update.getAsJsonObject("edited_message");
+                                        if (edited != null && edited.has("text")) {
+                                            String text = edited.get("text").getAsString();
+                                            String from = edited.has("from") && edited.getAsJsonObject("from").has("first_name")
+                                                    ? edited.getAsJsonObject("from").get("first_name").getAsString()
+                                                    : "Telegram";
+                                            String chat = edited.has("chat") && edited.getAsJsonObject("chat").has("id")
+                                                    ? edited.getAsJsonObject("chat").get("id").getAsString()
+                                                    : "0";
+                                            if (chat.equalsIgnoreCase(this.getChatID())) {
+                                                String format = plugin.getConfig().getString("minecraft_telegram_edited_message",
+                                                        "[TG] {telegram_name} edited message: {telegram_message}");
+                                                String formatted = format
+                                                        .replace("{telegram_name}", from)
+                                                        .replace("{telegram_message}", text);
+                                                messages.add(formatted);
+                                            }
+                                        }
+                                    }
+
+                                    // ---- обработка новых сообщений ----
                                     if (update.has("message") && update.getAsJsonObject("message").has("text")) {
                                         JsonObject message = update.getAsJsonObject("message");
                                         if (message != null) {
@@ -150,57 +158,67 @@ public class TelegramReciever {
                                             String from = "Telegram";
                                             String chat = "0";
                                             String id = "0";
+
                                             if (message.has("from")) {
                                                 JsonObject fromObj = message.getAsJsonObject("from");
-                                                if (fromObj != null && fromObj.has("first_name")) {
-                                                    from = fromObj.get("first_name").getAsString();
-                                                }
-                                                if (fromObj != null && fromObj.has("id")) {
-                                                    id = fromObj.get("id").getAsString();
-                                                }
+                                                if (fromObj.has("first_name")) from = fromObj.get("first_name").getAsString();
+                                                if (fromObj.has("id")) id = fromObj.get("id").getAsString();
                                             }
+
                                             if (message.has("chat")) {
-                                                JsonObject ChatObj = message.getAsJsonObject("chat");
-                                                if (ChatObj != null && ChatObj.has("id")) {
-                                                    chat = ChatObj.get("id").getAsString();
-                                                }
+                                                JsonObject chatObj = message.getAsJsonObject("chat");
+                                                if (chatObj.has("id")) chat = chatObj.get("id").getAsString();
                                             }
-                                            // Store the telegram name and message
-                                            String telegramName = from;
-                                            // Format the telegram message using the configuration
-                                            String minecraftTelegramFormat = plugin.getConfig().getString("minecraft_telegram_format", "[TG] {telegram_name}: {telegram_message}");
-                                            String formattedMessage = minecraftTelegramFormat.replace("{telegram_name}", telegramName).replace("{telegram_message}", text);
 
-                                            if (chat.equalsIgnoreCase(getChatID())) {
+                                            // ---- обработка reply_to_message ----
+                                            boolean hasReply = message.has("reply_to_message") && plugin.getConfig().getBoolean("support_replies_in_tg");
+                                            String formattedMessage;
+                                            if (hasReply) {
+                                                JsonObject reply = message.getAsJsonObject("reply_to_message");
+                                                String authorReply = "unknown";
+                                                String authorReplyMsgId = "0";
+                                                if (reply.has("from") && reply.getAsJsonObject("from").has("first_name"))
+                                                    authorReply = reply.getAsJsonObject("from").get("first_name").getAsString();
+                                                if (reply.has("message_id"))
+                                                    authorReplyMsgId = reply.get("message_id").getAsString();
+                                                String format = plugin.getConfig().getString("minecraft_telegram_format_with_reply",
+                                                        "[TG] {telegram_name}: {telegram_message}\n({author_reply} - {author_reply_message_id})");
+                                                formattedMessage = format.replace("{telegram_name}", from)
+                                                        .replace("{telegram_message}", text)
+                                                        .replace("{author_reply}", authorReply)
+                                                        .replace("{author_reply_message_id}", authorReplyMsgId);
+                                            } else {
+                                                String format = plugin.getConfig().getString("minecraft_telegram_format",
+                                                        "[TG] {telegram_name}: {telegram_message}");
+                                                formattedMessage = format.replace("{telegram_name}", from)
+                                                        .replace("{telegram_message}", text);
+                                            }
+
+                                            // ---- фильтр команд и добавление в сообщения ----
+                                            if (chat.equalsIgnoreCase(this.getChatID())) {
                                                 if (!text.startsWith("/")) {
-                                                    messages.add(formattedMessage);
-                                                } else {
-                                                    String token = plugin.getConfig().getString("telegram_bot_token");
-                                                    String chat_id = plugin.getConfig().getString("telegram_chat_id");
-                                                    if (isUserAdmin(token, chat_id, id)) {
-                                                        if (!getBannedCommands().contains("all")) {
-                                                            if (!getBannedCommands().contains(text) && !getBannedCommands().contains(text.split(" ")[0])) {
-                                                                messages.add(text);
-                                                                String message__ = plugin.getConfig().getString("command_sent_message").replace("{user}", from);
-                                                                SendTelegramFUNCTION(token, chat_id, message__);
-                                                            } else {
-                                                                String banned_command_text = plugin.getConfig().getString("command_was_banned").replace("{user}", from);
-                                                                SendTelegramFUNCTION(token, chat_id, banned_command_text);
-                                                            }
-                                                        } else {
-                                                            String commands_was_banned = plugin.getConfig().getString("commands_was_disabled").replace("{user}", from);
-                                                            SendTelegramFUNCTION(token, chat_id, commands_was_banned);
-                                                        }
-
+                                                    if (!plugin.getConfig().getBoolean("enable_restrictions_for_messages") ||
+                                                            !text.startsWith(plugin.getConfig().getString("prefix_for_telegram")))
+                                                        messages.add(formattedMessage);
+                                                } else if (text.equalsIgnoreCase("/players")) {
+                                                    Collection<? extends Player> players = plugin.getServer().getOnlinePlayers();
+                                                    if (players.isEmpty()) {
+                                                        this.SendTelegramFUNCTION(botToken, chat, plugin.getConfig().getString("no_players_on_server"));
                                                     } else {
-                                                        String message___ = plugin.getConfig().getString("you_havent_got_permission").replace("{user}", from);
-                                                        SendTelegramFUNCTION(token, chat_id, message___);
+                                                        List<String> playerNames = players.stream().map(Player::getName).toList().stream().limit(200L).toList();
+                                                        String message___ = plugin.getConfig().getString("players_msg_format")
+                                                                .replace("{online}", String.valueOf(players.size()))
+                                                                .replace("{max_players}", String.valueOf(plugin.getServer().getMaxPlayers()))
+                                                                .replace("{players_nicknames}", String.join(", ", playerNames));
+                                                        this.SendTelegramFUNCTION(botToken, chat, message___);
                                                     }
+                                                } else { // команды
+                                                    handleTelegramCommand(from, id, text, chat, messages);
                                                 }
                                             }
-
                                         }
                                     }
+
                                 }
                             }
                         }
@@ -213,24 +231,38 @@ public class TelegramReciever {
                 plugin.getLogger().warning("Failed to get updates from Telegram: " + response.statusCode());
                 plugin.getLogger().warning("Response body: " + response.body());
             }
-
-        } catch (IOException | InterruptedException e) {
+        } catch (InterruptedException | IOException e) {
             plugin.getLogger().severe("Error fetching Telegram messages: " + e.getMessage());
         }
         return messages;
     }
 
+    private void handleTelegramCommand(String from, String id, String text, String chat, List<String> messages) {
+        try {
+            if (isUserAdmin(botToken, chat, id) || plugin.getConfig().getStringList("additional_admins").contains(id)) {
+                if (!getBannedCommands().contains("all") && !getBannedCommands().contains(text) && !getBannedCommands().contains(text.split(" ")[0])) {
+                    messages.add(text);
+                    SendTelegramFUNCTION(botToken, chat, plugin.getConfig().getString("command_sent_message").replace("{user}", from));
+                } else {
+                    SendTelegramFUNCTION(botToken, chat, plugin.getConfig().getString("command_was_banned").replace("{user}", from));
+                }
+            } else {
+                SendTelegramFUNCTION(botToken, chat, plugin.getConfig().getString("you_havent_got_permission").replace("{user}", from));
+            }
+        } catch (IOException | InterruptedException e) {
+            plugin.getLogger().severe("Failed to send Telegram command response: " + e.getMessage());
+        }
+    }
+
     public void processMessages() {
         List<String> newMessages = getNewMessages();
         ConsoleCommandSender sender = getCommandsSender();
-
         if (!newMessages.isEmpty()) {
             for (String message : newMessages) {
                 if (!message.startsWith("/")) {
-                    // Важно: используем экземпляр плагина для доступа к планировщику
                     plugin.getServer().getScheduler().runTask(plugin, () -> {
                         for (Player player : Bukkit.getOnlinePlayers()) {
-                            player.sendMessage(message); // Send the formatted message directly
+                            player.sendMessage(message);
                         }
                     });
                     plugin.getLogger().info("Telegram: " + message);
