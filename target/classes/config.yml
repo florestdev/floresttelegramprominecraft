@@ -1,5 +1,7 @@
 telegram_bot_token: "your-token" # just write here your token
 telegram_chat_id: "your-chat-id" # just write your chat id
+support_themes: false # type true, if your group works with themes.
+follow_theme: 0 # theme, which bot use for Minecraft-Telegram Receive.
 telegram_message_format: "[MC] {player}: {message}" # just write your messages format. ({prefix} is optional)
 minecraft_telegram_format: "[TG] {telegram_name}: {telegram_message}"
 minecraft_telegram_format_with_reply: "[TG] {telegram_name}: {telegram_message}\n({author_reply} - {author_reply_message_id})"

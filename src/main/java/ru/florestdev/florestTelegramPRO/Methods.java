@@ -7,9 +7,11 @@ import org.bukkit.plugin.Plugin;
 
 import java.io.IOException;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -178,24 +180,38 @@ public class Methods {
     }
 
     public void SendTelegramFUNCTION(String botToken, String chatId, String message) throws IOException, InterruptedException {
-        // Функция для отправки сообщения в тг
+        // Функция для отправки сообщения в Telegram с поддержкой тем
         String url = String.format("https://api.telegram.org/bot%s/sendMessage", botToken);
-        String requestBody = String.format("chat_id=%s&text=%s", chatId, message);
+
+        StringBuilder requestBody = new StringBuilder();
+        requestBody.append("chat_id=").append(chatId);
+        requestBody.append("&text=").append(URLEncoder.encode(message, StandardCharsets.UTF_8));
+
+        // Поддержка темы (thread) из конфига
+        if (plugin.getConfig().getBoolean("support_themes")) {
+            int themeId = plugin.getConfig().getInt("follow_theme", 0);
+            if (themeId > 0) {
+                requestBody.append("&message_thread_id=").append(themeId);
+            }
+        }
+
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
                 .header("Content-Type", "application/x-www-form-urlencoded")
                 .header("User-Agent", "FlorestPlugin")
-                .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+                .POST(HttpRequest.BodyPublishers.ofString(requestBody.toString()))
                 .build();
+
         HttpClient client = HttpClient.newHttpClient();
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
         if (response.statusCode() == 200) {
             plugin.getLogger().info("Successful sending.");
-        }
-        else {
+        } else {
             plugin.getLogger().info("Own bad! We can't send message to Telegram APIs.");
         }
     }
+
 
     public boolean isUserAdmin(String botToken, String chatId, String userId) {
         try {
