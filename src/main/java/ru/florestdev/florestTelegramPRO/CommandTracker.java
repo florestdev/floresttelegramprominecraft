@@ -46,22 +46,14 @@ public class CommandTracker implements Listener {
                         String token = plugin.getConfig().getString("telegram_bot_token");
                         String chatId = plugin.getConfig().getString("telegram_chat_id");
                         String message = plugin.getConfig().getString("human_process_command").replace("{user}", event.getPlayer().getName()).replace("{command}", event.getMessage().split(" ")[0]);
-                        try {
-                            methods.SendTelegramFUNCTION(token, chatId, message);
-                        } catch (IOException | InterruptedException e) {
-                            // ...
-                        }
+                        methods.sendTelegramMessage(token, chatId, message);
                     }
                 } else {
                     if (whitelisted().contains(event.getMessage().split(" ")[0])) {
                         String token = plugin.getConfig().getString("telegram_bot_token");
                         String chatId = plugin.getConfig().getString("telegram_chat_id");
                         String message = plugin.getConfig().getString("human_process_command").replace("{user}", event.getPlayer().getName()).replace("{command}", event.getMessage().split(" ")[0]);
-                        try {
-                            methods.SendTelegramFUNCTION(token, chatId, message);
-                        } catch (IOException | InterruptedException e) {
-                            // ...
-                        }
+                        methods.sendTelegramMessage(token, chatId, message);
                     }
                 }
             }

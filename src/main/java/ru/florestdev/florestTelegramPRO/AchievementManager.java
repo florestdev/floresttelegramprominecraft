@@ -68,11 +68,7 @@ public class AchievementManager implements Listener {
             }
         }
 
-        try {
-            methods.SendTelegramFUNCTION(bot_token, chatId, message);
-        } catch (IOException | InterruptedException e) {
-            // ...
-        }
+        methods.sendTelegramMessage(bot_token, chatId, message);
     }
 
     public static String removeMinecraftFormatting(String text) {

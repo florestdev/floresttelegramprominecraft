@@ -6,7 +6,7 @@
 
     <groupId>ru.florestdev</groupId>
     <artifactId>floresttelegrampro</artifactId>
-    <version>10.1-stable</version>
+    <version>10.1-fixed</version>
     <packaging>jar</packaging>
 
     <name>floresttelegrampro</name>

@@ -63,24 +63,10 @@ public class ChatListener implements Listener {
         }
 
         if (!main.getConfig().getBoolean("enable_restrictions_for_messages")) {
-            try {
-                methods.SendTelegramFUNCTION(token, chat_id, formattedMessage);
-            } catch (IOException e) {
-                main.getLogger().severe("IOException при отправке сообщения в Telegram: " + e.getMessage());
-            } catch (InterruptedException e) {
-                main.getLogger().severe("InterruptedException при отправке сообщения в Telegram: " + e.getMessage());
-                Thread.currentThread().interrupt(); // Важно: прерываем текущий поток
-            }
+            methods.sendTelegramMessage(token, chat_id, formattedMessage);
         } else {
             if (!message.startsWith(Objects.requireNonNull(main.getConfig().getString("prefix_for_minecraft")))) {
-                try {
-                    methods.SendTelegramFUNCTION(token, chat_id, formattedMessage);
-                } catch (IOException e) {
-                    main.getLogger().severe("IOException при отправке сообщения в Telegram: " + e.getMessage());
-                } catch (InterruptedException e) {
-                    main.getLogger().severe("InterruptedException при отправке сообщения в Telegram: " + e.getMessage());
-                    Thread.currentThread().interrupt(); // Важно: прерываем текущий поток
-                }
+                methods.sendTelegramMessage(token, chat_id, formattedMessage);
             }
         }
     }

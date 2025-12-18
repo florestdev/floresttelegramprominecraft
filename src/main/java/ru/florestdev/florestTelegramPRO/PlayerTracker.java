@@ -55,11 +55,7 @@ public class PlayerTracker implements Listener {
             Date currentDate = new Date();
             SimpleDateFormat formatter = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
             String formattedDate = formatter.format(currentDate);
-            try {
-                methods.setChatDescription(token, chat_id, plugin.getConfig().getString("on_online_desc").replace("{players_online}", String.valueOf(plugin.getServer().getOnlinePlayers().size())).replace("{players_max}", String.valueOf(plugin.getServer().getMaxPlayers())).replace("{time}", formattedDate));
-            } catch (IOException | InterruptedException e) {
-                throw new RuntimeException(e);
-            }
+            methods.setChatDescription(token, chat_id, plugin.getConfig().getString("on_online_desc").replace("{players_online}", String.valueOf(plugin.getServer().getOnlinePlayers().size())).replace("{players_max}", String.valueOf(plugin.getServer().getMaxPlayers())).replace("{time}", formattedDate));
         }
 
         if (plugin.getConfig().getBoolean("support_prefix")) {
@@ -80,11 +76,7 @@ public class PlayerTracker implements Listener {
             }
         }
 
-        try {
-            methods.SendTelegramFUNCTION(token, chat_id, message);
-        } catch (IOException | InterruptedException e) {
-            // ...
-        }
+        methods.sendTelegramMessage(token, chat_id, message);
     }
 
     // Обработчик события выхода игрока
@@ -103,11 +95,7 @@ public class PlayerTracker implements Listener {
             Date currentDate = new Date();
             SimpleDateFormat formatter = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
             String formattedDate = formatter.format(currentDate);
-            try {
-                methods.setChatDescription(token, chat_id, plugin.getConfig().getString("on_online_desc").replace("{players_online}", String.valueOf(plugin.getServer().getOnlinePlayers().size())).replace("{players_max}", String.valueOf(plugin.getServer().getMaxPlayers())).replace("{time}", formattedDate));
-            } catch (IOException | InterruptedException e) {
-                throw new RuntimeException(e);
-            }
+            methods.setChatDescription(token, chat_id, plugin.getConfig().getString("on_online_desc").replace("{players_online}", String.valueOf(plugin.getServer().getOnlinePlayers().size())).replace("{players_max}", String.valueOf(plugin.getServer().getMaxPlayers())).replace("{time}", formattedDate));
         }
 
         if (plugin.getConfig().getBoolean("support_prefix")) {
@@ -128,11 +116,7 @@ public class PlayerTracker implements Listener {
             }
         }
 
-        try {
-            methods.SendTelegramFUNCTION(token, chat_id, message);
-        } catch (IOException | InterruptedException e) {
-            // ...
-        }
+        methods.sendTelegramMessage(token, chat_id, message);
     }
 
     public static String removeMinecraftFormatting(String text) {

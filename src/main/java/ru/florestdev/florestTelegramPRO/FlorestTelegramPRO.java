@@ -70,12 +70,12 @@ public final class FlorestTelegramPRO extends JavaPlugin {
             if (getConfig().getBoolean("support_themes")) {
                 int themeId = getConfig().getInt("follow_theme", 0);
                 if (themeId > 0) {
-                    methods.SendTelegramFUNCTION(bot_token, chat_id, message);
+                    methods.sendTelegramMessage(bot_token, chat_id, message);
                 } else {
-                    methods.SendTelegramFUNCTION(bot_token, chat_id, message);
+                    methods.sendTelegramMessage(bot_token, chat_id, message);
                 }
             } else {
-                methods.SendTelegramFUNCTION(bot_token, chat_id, message);
+                methods.sendTelegramMessage(bot_token, chat_id, message);
             }
         } catch (Exception e) {
             getLogger().severe("We didn't send message about server's starting! Config.yml is bad. Disabling..");
@@ -94,16 +94,12 @@ public final class FlorestTelegramPRO extends JavaPlugin {
             String formattedDate = formatter.format(currentDate);
             String bot_token = getConfig().getString("telegram_bot_token");
             String chat_id = getConfig().getString("telegram_chat_id");
-            try {
-                methods.setChatDescription(bot_token, chat_id,
-                        getConfig().getString("on_online_desc")
-                                .replace("{players_online}", String.valueOf(getServer().getOnlinePlayers().size()))
-                                .replace("{players_max}", String.valueOf(getServer().getMaxPlayers()))
-                                .replace("{time}", formattedDate)
-                );
-            } catch (IOException | InterruptedException e) {
-                throw new RuntimeException(e);
-            }
+            methods.setChatDescription(bot_token, chat_id,
+                    getConfig().getString("on_online_desc")
+                            .replace("{players_online}", String.valueOf(getServer().getOnlinePlayers().size()))
+                            .replace("{players_max}", String.valueOf(getServer().getMaxPlayers()))
+                            .replace("{time}", formattedDate)
+            );
         }
     }
 
@@ -121,12 +117,12 @@ public final class FlorestTelegramPRO extends JavaPlugin {
             if (getConfig().getBoolean("support_themes")) {
                 int themeId = getConfig().getInt("follow_theme", 0);
                 if (themeId > 0) {
-                    methods.SendTelegramFUNCTION(bot_token, chat_id, message);
+                    methods.sendTelegramMessage(bot_token, chat_id, message);
                 } else {
-                    methods.SendTelegramFUNCTION(bot_token, chat_id, message);
+                    methods.sendTelegramMessage(bot_token, chat_id, message);
                 }
             } else {
-                methods.SendTelegramFUNCTION(bot_token, chat_id, message);
+                methods.sendTelegramMessage(bot_token, chat_id, message);
             }
 
             methods.setChatDescription(bot_token, chat_id, getConfig().getString("off_desc"));
