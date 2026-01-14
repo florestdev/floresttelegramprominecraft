@@ -1,5 +1,6 @@
 package ru.florestdev.florestTelegramPRO;
 
+import com.earth2me.essentials.Essentials;
 import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.RegisteredServiceProvider;
@@ -13,10 +14,15 @@ import java.util.Date;
 public final class FlorestTelegramPRO extends JavaPlugin {
 
     Methods methods = new Methods(this);
+    public static Essentials essentials;
+
+    public Essentials getEssentials() {
+        return essentials;
+    }
 
     @Override
     public void onEnable() {
-        // Plugin startup logic
+        essentials = (Essentials) Bukkit.getPluginManager().getPlugin("Essentials");
         getServer().getPluginManager().registerEvents(new ChatListener(this, methods), this);
         PlayerTracker tracker = new PlayerTracker(this, methods);
         tracker.register();

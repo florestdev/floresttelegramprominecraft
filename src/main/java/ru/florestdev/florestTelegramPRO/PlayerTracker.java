@@ -95,7 +95,7 @@ public class PlayerTracker implements Listener {
             Date currentDate = new Date();
             SimpleDateFormat formatter = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
             String formattedDate = formatter.format(currentDate);
-            methods.setChatDescription(token, chat_id, plugin.getConfig().getString("on_online_desc").replace("{players_online}", String.valueOf(plugin.getServer().getOnlinePlayers().size())).replace("{players_max}", String.valueOf(plugin.getServer().getMaxPlayers())).replace("{time}", formattedDate));
+            methods.setChatDescription(token, chat_id, plugin.getConfig().getString("on_online_desc").replace("{players_online}", String.valueOf(plugin.getServer().getOnlinePlayers().size() - 1)).replace("{players_max}", String.valueOf(plugin.getServer().getMaxPlayers())).replace("{time}", formattedDate));
         }
 
         if (plugin.getConfig().getBoolean("support_prefix")) {

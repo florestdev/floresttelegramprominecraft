@@ -18,12 +18,14 @@ import java.util.List;
 
 public class TelegramReciever {
 
-    private final JavaPlugin plugin;
+    private final FlorestTelegramPRO plugin;
     private final String botToken;
     private final HttpClient httpClient;
     private int lastUpdateId;
 
-    public TelegramReciever(JavaPlugin plugin, String botToken) {
+    public Runtime runtime = Runtime.getRuntime();
+
+    public TelegramReciever(FlorestTelegramPRO plugin, String botToken) {
         this.plugin = plugin;
         this.botToken = botToken;
         this.httpClient = HttpClient.newHttpClient();
@@ -186,6 +188,22 @@ public class TelegramReciever {
 
             SendTelegramFUNCTION(botToken, chatId, sb.toString());
             return;
+        }
+
+        if (text.equalsIgnoreCase("/tps")) {
+            if (plugin.getEssentials() == null) {
+                SendTelegramFUNCTION(botToken, chatId, "Server haven't got the EssentialsX plugin for this feature. Please install!");
+                return;
+            } else {
+                double currentTps = plugin.essentials.getTimer().getAverageTPS();
+                long maxMemory = runtime.maxMemory() / 1024 / 1024;
+                long freeMemory = runtime.freeMemory() / 1024 / 1024;
+
+                // Вычисляем реально используемую память
+                long usedMemory = maxMemory - freeMemory;
+                SendTelegramFUNCTION(botToken, chatId, plugin.getConfig().getString("tps_message").replace("{tps}", String.valueOf(currentTps)).replace("{ram_usage}", String.valueOf(usedMemory)).replace("{ram_maximum}", String.valueOf(maxMemory)));
+                return;
+            }
         }
 
         handleTelegramCommand(from, userId, text, chatId, out);

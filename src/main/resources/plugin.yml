@@ -1,11 +1,11 @@
 name: FlorestTelegramPRO
-version: '10.1-fixed'
+version: '10.2-stable'
 main: ru.florestdev.florestTelegramPRO.FlorestTelegramPRO
-api-version: '1.20'
+api-version: '1.21'
 prefix:  FlorestTelegram
 load: STARTUP
 authors: [ FlorestDev ]
-softdepend: [LuckPerms]
+softdepend: [LuckPerms, Essentials]
 description: Just a plugin for Telegram chat sending from Minecraft.
 commands:
   floresttelegram:

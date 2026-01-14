@@ -52,6 +52,8 @@ message_tps_lagg: "Server started lagging! Now tps: {tps}" # you must write {tps
 no_players_on_server: "Server has 0 players at the moment."
 players_msg_format: "Server has {online} / {max_players} at the moment.\n{players_nicknames}"
 
+tps_message: "TPS: {tps}.\nRAM usage: {ram_usage}/{ram_maximum}"
+
 support_prefix: false # if true, you must add {prefix} placeholder in all messages with players' actions. You must have LuckPerms on your server.
 support_replies_in_tg: false # if true, we can display about reply on Telegram message. new placeholders: {author_reply} + {author_reply_message_id}
 
