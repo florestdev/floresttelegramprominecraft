@@ -6,6 +6,7 @@ telegram_message_format: "[MC] {player}: {message}" # just write your messages f
 minecraft_telegram_format: "[TG] {telegram_name}: {telegram_message}"
 minecraft_telegram_format_with_reply: "[TG] {telegram_name}: {telegram_message}\n({author_reply} - {author_reply_message_id})"
 minecraft_telegram_edited_message: "[TG] {telegram_name} edited message: {telegram_message}"
+minecraft_telegram_reaction_received: "[TG] {telegram_name} reacted with emoji {reaction} on {author}'s message: {message}"
 
 # On server starting/stopping.
 hello_message: "Hello, buddy! You're cool."
