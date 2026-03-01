@@ -2,9 +2,15 @@ package ru.florestdev.florestTelegramPRO;
 
 import com.google.gson.*;
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.MapMeta;
+import org.bukkit.map.MapRenderer;
+import org.bukkit.map.MapView;
 
+import java.awt.image.BufferedImage;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
@@ -12,6 +18,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 public class TelegramReciever {
 
@@ -110,7 +117,16 @@ public class TelegramReciever {
                 lastUpdateId = upd.get("update_id").getAsInt();
 
                 if (upd.has("message")) {
-                    handleMessage(upd.getAsJsonObject("message"), messages);
+                    JsonObject msg = upd.getAsJsonObject("message");
+
+                    // ПРОВЕРКА НА ФОТО
+                    if (msg.has("photo")) {
+                        handlePhoto(msg);
+                    }
+                    // Если не фото, обрабатываем как обычное сообщение
+                    else {
+                        handleMessage(msg, messages);
+                    }
                 } else if (upd.has("edited_message")) {
                     handleEdited(upd.getAsJsonObject("edited_message"), messages);
                 } else if (upd.has("message_reaction")) {
@@ -218,6 +234,78 @@ public class TelegramReciever {
                 .replace("{ram_usage}", String.valueOf(used))
                 .replace("{ram_maximum}", String.valueOf(max));
         SendTelegramFUNCTION(botToken, chatId, msg);
+    }
+
+    public ItemStack createMapItem(BufferedImage image, Player player) {
+        if (player == null) {
+            return null;
+        }
+        MapView view = Bukkit.createMap(player.getWorld());
+        for (MapRenderer renderer : view.getRenderers()) {
+            view.removeRenderer(renderer);
+        }
+        view.addRenderer(new TelegramPhotoRenderer(image));
+
+        ItemStack mapItem = new ItemStack(Material.FILLED_MAP);
+        MapMeta meta = (MapMeta) mapItem.getItemMeta();
+        meta.setMapView(view);
+        meta.setDisplayName("§dФото с Telegram");
+        mapItem.setItemMeta(meta);
+
+        return mapItem;
+    }
+
+    private void handlePhoto(JsonObject msg) {
+        if (!msg.has("photo")) return;
+
+        // 1. Проверяем наличие подписи (caption) с ником
+        String caption = msg.has("caption") ? msg.get("caption").getAsString() : "";
+        if (caption.isEmpty()) return;
+
+        String[] parts = caption.split(" ");
+        String playerName = parts[0]; // Первое слово — ник
+
+        // 2. Берем фото в лучшем качестве (последнее в массиве)
+        JsonArray photos = msg.getAsJsonArray("photo");
+        String fileId = photos.get(photos.size() - 1).getAsJsonObject().get("file_id").getAsString();
+
+        // 3. Получаем путь к файлу через getFile
+        CompletableFuture.runAsync(() -> {
+            try {
+                HttpRequest getFileRequest = HttpRequest.newBuilder()
+                        .uri(URI.create("https://api.telegram.org/bot" + botToken + "/getFile?file_id=" + fileId))
+                        .GET().build();
+
+                HttpResponse<String> response = httpClient.send(getFileRequest, HttpResponse.BodyHandlers.ofString());
+                JsonObject json = JsonParser.parseString(response.body()).getAsJsonObject();
+
+                if (json.get("ok").getAsBoolean()) {
+                    String filePath = json.getAsJsonObject("result").get("file_path").getAsString();
+                    String downloadUrl = "https://api.telegram.org/file/bot" + botToken + "/" + filePath;
+
+                    // 4. Скачиваем картинку
+                    java.io.InputStream in = new URI(downloadUrl).toURL().openStream();
+                    java.awt.image.BufferedImage image = javax.imageio.ImageIO.read(in);
+
+                    // 5. Пихаем в твой кастомный рендер (выполняем в основном потоке Bukkit)
+                    Bukkit.getScheduler().runTask(plugin, () -> {
+                        Player player = Bukkit.getPlayer(playerName);
+                        if (player != null && player.isOnline()) {
+                            ItemStack map = createMapItem(image, player);
+                            // Добавляем карту в инвентарь или дропаем под ноги, если инвентарь полон
+                            player.getInventory().addItem(map).values().forEach(remaining ->
+                                    player.getWorld().dropItemNaturally(player.getLocation(), remaining)
+                            );
+                            player.sendMessage("§a[TG] Вам прислали фото!");
+                        } else {
+                            plugin.getLogger().warning("Игрок " + playerName + " не в сети, карта не выдана.");
+                        }
+                    });
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
     }
 
     private void handleTelegramCommand(String from, String id, String text, String chat, List<String> out) {
