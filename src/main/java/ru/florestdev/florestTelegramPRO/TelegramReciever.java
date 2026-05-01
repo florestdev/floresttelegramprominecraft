@@ -3,12 +3,21 @@ package ru.florestdev.florestTelegramPRO;
 import com.google.gson.*;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.Server;
 import org.bukkit.command.ConsoleCommandSender;
+import org.bukkit.conversations.Conversation;
+import org.bukkit.conversations.ConversationAbandonedEvent;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.MapMeta;
 import org.bukkit.map.MapRenderer;
 import org.bukkit.map.MapView;
+import org.bukkit.permissions.Permission;
+import org.bukkit.permissions.PermissionAttachment;
+import org.bukkit.permissions.PermissionAttachmentInfo;
+import org.bukkit.plugin.Plugin;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.awt.image.BufferedImage;
 import java.net.URI;
@@ -28,19 +37,31 @@ public class TelegramReciever {
     private int lastUpdateId;
     public Runtime runtime = Runtime.getRuntime();
 
-    // Вспомогательный класс для хранения данных о сообщении (для реакций)
+    // Очередь команд для обработки в основном потоке с захватом вывода
+    private static class PendingCommand {
+        final String command;
+        final String chatId;
+        final String senderName;
+
+        PendingCommand(String command, String chatId, String senderName) {
+            this.command = command;
+            this.chatId = chatId;
+            this.senderName = senderName;
+        }
+    }
+
+    private final List<PendingCommand> commandQueue = Collections.synchronizedList(new ArrayList<>());
+
     private static class CachedMessage {
         final String author;
         final String text;
 
         CachedMessage(String author, String text) {
             this.author = author;
-            // Обрезаем до 100 символов для экономии ОЗУ и чистоты чата
             this.text = text.length() > 100 ? text.substring(0, 100) + "..." : text;
         }
     }
 
-    // Кэш: ID сообщения -> {Автор, Текст}. Лимит 1000 записей.
     private final Map<Integer, CachedMessage> messageCache = Collections.synchronizedMap(
             new LinkedHashMap<Integer, CachedMessage>(1001, 0.75f, true) {
                 @Override
@@ -74,7 +95,6 @@ public class TelegramReciever {
                     .POST(HttpRequest.BodyPublishers.ofString(body.toString()))
                     .build();
 
-            // Отправляем и парсим ответ, чтобы сохранить ID сообщения бота в кэш
             httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())
                     .thenAccept(res -> {
                         try {
@@ -93,15 +113,8 @@ public class TelegramReciever {
     public List<String> getNewMessages() {
         List<String> messages = new ArrayList<>();
         try {
-            // Добавляем allowed_updates, чтобы Telegram присылал реакции
-            String allowed = URLEncoder.encode(
-                    "[\"message\",\"edited_message\",\"message_reaction\"]",
-                    StandardCharsets.UTF_8
-            );
-
-            String url = "https://api.telegram.org/bot" + botToken + "/getUpdates" +
-                    "?offset=" + (lastUpdateId + 1) +
-                    "&allowed_updates=" + allowed;
+            String allowed = URLEncoder.encode("[\"message\",\"edited_message\",\"message_reaction\"]", StandardCharsets.UTF_8);
+            String url = "https://api.telegram.org/bot" + botToken + "/getUpdates?offset=" + (lastUpdateId + 1) + "&allowed_updates=" + allowed;
 
             HttpRequest request = HttpRequest.newBuilder().uri(URI.create(url)).GET().build();
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
@@ -118,15 +131,8 @@ public class TelegramReciever {
 
                 if (upd.has("message")) {
                     JsonObject msg = upd.getAsJsonObject("message");
-
-                    // ПРОВЕРКА НА ФОТО
-                    if (msg.has("photo")) {
-                        handlePhoto(msg);
-                    }
-                    // Если не фото, обрабатываем как обычное сообщение
-                    else {
-                        handleMessage(msg, messages);
-                    }
+                    if (msg.has("photo")) handlePhoto(msg);
+                    else handleMessage(msg, messages);
                 } else if (upd.has("edited_message")) {
                     handleEdited(upd.getAsJsonObject("edited_message"), messages);
                 } else if (upd.has("message_reaction")) {
@@ -137,17 +143,20 @@ public class TelegramReciever {
         return messages;
     }
 
-    private void handleMessage(JsonObject msg, List<String> out) {
+    public void handleMessage(JsonObject msg, List<String> out) {
+        // 1. Базовые проверки
         if (!msg.has("text") || !msg.getAsJsonObject("chat").get("id").getAsString().equals(getChatID())) return;
 
         int msgId = msg.get("message_id").getAsInt();
         String from = msg.getAsJsonObject("from").get("first_name").getAsString();
         String text = msg.get("text").getAsString();
         String userId = msg.getAsJsonObject("from").get("id").getAsString();
+        String chatId = msg.getAsJsonObject("chat").get("id").getAsString();
 
-        // Сохраняем в кэш для будущих реакций
+        // Кэшируем (это безопасно делать асинхронно)
         messageCache.put(msgId, new CachedMessage(from, text));
 
+        // Проверка тем (Threads)
         if (plugin.getConfig().getBoolean("support_themes")) {
             int theme = plugin.getConfig().getInt("follow_theme");
             if (theme > 0 && (!msg.has("message_thread_id") || msg.get("message_thread_id").getAsInt() != theme)) return;
@@ -155,51 +164,46 @@ public class TelegramReciever {
 
         if (!text.startsWith("/")) {
             String format = plugin.getConfig().getString("minecraft_telegram_format", "[TG] {telegram_name}: {telegram_message}");
-            out.add(format.replace("{telegram_name}", from).replace("{telegram_message}", text));
+            String finalMessage = format.replace("{telegram_name}", from).replace("{telegram_message}", text);
+
+            // ВАЖНО: Возвращаемся в основной поток сервера для работы с чатом
+            plugin.getServer().getScheduler().runTask(plugin, () -> {
+                plugin.getServer().broadcastMessage(org.bukkit.ChatColor.translateAlternateColorCodes('&', finalMessage));
+            });
+
+            out.add(finalMessage); // Оставляем для совместимости, если нужно
         } else {
-            processInternalCommand(text, from, userId, msg.getAsJsonObject("chat").get("id").getAsString(), out);
+            // Команды тоже лучше выполнять в основном потоке внутри processInternalCommand
+            processInternalCommand(text, from, userId, chatId, out);
         }
     }
 
-    private void handleEdited(JsonObject msg, List<String> out) {
+    public void handleEdited(JsonObject msg, List<String> out) {
         if (!msg.has("text") || !msg.getAsJsonObject("chat").get("id").getAsString().equals(getChatID())) return;
-
         String from = msg.getAsJsonObject("from").get("first_name").getAsString();
         String text = msg.get("text").getAsString();
-
-        // Обновляем текст в кэше, если сообщение отредактировали
         messageCache.put(msg.get("message_id").getAsInt(), new CachedMessage(from, text));
-
         String format = plugin.getConfig().getString("minecraft_telegram_edited_message");
         out.add(format.replace("{telegram_name}", from).replace("{telegram_message}", text));
     }
 
-    private void handleReaction(JsonObject reactionObj, List<String> out) {
+    public void handleReaction(JsonObject reactionObj, List<String> out) {
         try {
             if (!reactionObj.getAsJsonObject("chat").get("id").getAsString().equals(getChatID())) return;
-
             int msgId = reactionObj.get("message_id").getAsInt();
             String reactorName = reactionObj.getAsJsonObject("user").get("first_name").getAsString();
-
             JsonArray newReactions = reactionObj.getAsJsonArray("new_reaction");
-            if (newReactions.isEmpty()) return; // Реакцию убрали
-
+            if (newReactions.isEmpty()) return;
             String emoji = newReactions.get(newReactions.size() - 1).getAsJsonObject().get("emoji").getAsString();
-
-            // Достаем данные из кэша
             CachedMessage cached = messageCache.get(msgId);
             String author = (cached != null) ? cached.author : "Unknown";
             String originalText = (cached != null) ? cached.text : "...";
-
             String format = plugin.getConfig().getString("minecraft_telegram_reaction_received");
-            out.add(format.replace("{telegram_name}", reactorName)
-                    .replace("{reaction}", emoji)
-                    .replace("{author}", author)
-                    .replace("{message}", originalText));
+            out.add(format.replace("{telegram_name}", reactorName).replace("{reaction}", emoji).replace("{author}", author).replace("{message}", originalText));
         } catch (Exception ignored) {}
     }
 
-    private void processInternalCommand(String text, String from, String userId, String chatId, List<String> out) {
+    public void processInternalCommand(String text, String from, String userId, String chatId, List<String> out) {
         if (text.equalsIgnoreCase("/players")) {
             sendPlayersList(chatId);
         } else if (text.equalsIgnoreCase("/tps")) {
@@ -208,8 +212,6 @@ public class TelegramReciever {
             handleTelegramCommand(from, userId, text, chatId, out);
         }
     }
-
-    // --- Вспомогательные методы для чистоты кода ---
 
     private void sendPlayersList(String chatId) {
         Collection<? extends Player> players = plugin.getServer().getOnlinePlayers();
@@ -237,74 +239,50 @@ public class TelegramReciever {
     }
 
     public ItemStack createMapItem(BufferedImage image, Player player) {
-        if (player == null) {
-            return null;
-        }
+        if (player == null) return null;
         MapView view = Bukkit.createMap(player.getWorld());
-        for (MapRenderer renderer : view.getRenderers()) {
-            view.removeRenderer(renderer);
-        }
+        for (MapRenderer renderer : view.getRenderers()) view.removeRenderer(renderer);
         view.addRenderer(new TelegramPhotoRenderer(image));
-
         ItemStack mapItem = new ItemStack(Material.FILLED_MAP);
         MapMeta meta = (MapMeta) mapItem.getItemMeta();
-        meta.setMapView(view);
-        meta.setDisplayName("§dФото с Telegram");
-        mapItem.setItemMeta(meta);
-
+        if (meta != null) {
+            meta.setMapView(view);
+            meta.setDisplayName("§dФото с Telegram");
+            mapItem.setItemMeta(meta);
+        }
         return mapItem;
     }
 
-    private void handlePhoto(JsonObject msg) {
+    public void handlePhoto(JsonObject msg) {
         if (!msg.has("photo")) return;
-
-        // 1. Проверяем наличие подписи (caption) с ником
         String caption = msg.has("caption") ? msg.get("caption").getAsString() : "";
         if (caption.isEmpty()) return;
-
-        String[] parts = caption.split(" ");
-        String playerName = parts[0]; // Первое слово — ник
-
-        // 2. Берем фото в лучшем качестве (последнее в массиве)
+        String playerName = caption.split(" ")[0];
         JsonArray photos = msg.getAsJsonArray("photo");
         String fileId = photos.get(photos.size() - 1).getAsJsonObject().get("file_id").getAsString();
 
-        // 3. Получаем путь к файлу через getFile
         CompletableFuture.runAsync(() -> {
             try {
                 HttpRequest getFileRequest = HttpRequest.newBuilder()
                         .uri(URI.create("https://api.telegram.org/bot" + botToken + "/getFile?file_id=" + fileId))
                         .GET().build();
-
                 HttpResponse<String> response = httpClient.send(getFileRequest, HttpResponse.BodyHandlers.ofString());
                 JsonObject json = JsonParser.parseString(response.body()).getAsJsonObject();
-
                 if (json.get("ok").getAsBoolean()) {
                     String filePath = json.getAsJsonObject("result").get("file_path").getAsString();
                     String downloadUrl = "https://api.telegram.org/file/bot" + botToken + "/" + filePath;
-
-                    // 4. Скачиваем картинку
                     java.io.InputStream in = new URI(downloadUrl).toURL().openStream();
-                    java.awt.image.BufferedImage image = javax.imageio.ImageIO.read(in);
-
-                    // 5. Пихаем в твой кастомный рендер (выполняем в основном потоке Bukkit)
+                    BufferedImage image = javax.imageio.ImageIO.read(in);
                     Bukkit.getScheduler().runTask(plugin, () -> {
                         Player player = Bukkit.getPlayer(playerName);
                         if (player != null && player.isOnline()) {
                             ItemStack map = createMapItem(image, player);
-                            // Добавляем карту в инвентарь или дропаем под ноги, если инвентарь полон
-                            player.getInventory().addItem(map).values().forEach(remaining ->
-                                    player.getWorld().dropItemNaturally(player.getLocation(), remaining)
-                            );
+                            player.getInventory().addItem(map).values().forEach(rem -> player.getWorld().dropItemNaturally(player.getLocation(), rem));
                             player.sendMessage("§a[TG] Вам прислали фото!");
-                        } else {
-                            plugin.getLogger().warning("Игрок " + playerName + " не в сети, карта не выдана.");
                         }
                     });
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            } catch (Exception e) { e.printStackTrace(); }
         });
     }
 
@@ -318,8 +296,9 @@ public class TelegramReciever {
             SendTelegramFUNCTION(botToken, chat, plugin.getConfig().getString("command_was_banned").replace("{user}", from));
             return;
         }
-        out.add(text);
-        SendTelegramFUNCTION(botToken, chat, plugin.getConfig().getString("command_sent_message").replace("{user}", from));
+
+        // Добавляем команду в очередь для выполнения с перехватом
+        commandQueue.add(new PendingCommand(text.startsWith("/") ? text.substring(1) : text, chat, from));
     }
 
     public boolean isUserAdmin(String botToken, String chatId, String userId) {
@@ -336,18 +315,100 @@ public class TelegramReciever {
         } catch (Exception e) { return false; }
     }
 
-    public void processMessages() {
-        List<String> messages = getNewMessages();
-        if (messages.isEmpty()) return;
-        ConsoleCommandSender sender = plugin.getServer().getConsoleSender();
-        for (String msg : messages) {
+    public void processMessages(List<String> messages_) {
+        List<String> messages;
+
+        // 1. Определяем источник сообщений
+        if (messages_ == null) {
+            // Режим Polling: сами идем за списком
+            messages = getNewMessages();
+        } else {
+            // Режим Webhook: берем то, что прислал сервер
+            messages = messages_;
+        }
+
+        // 2. Отправка обычных сообщений в чат (для ОБОИХ режимов)
+        if (messages != null && !messages.isEmpty()) {
             Bukkit.getScheduler().runTask(plugin, () -> {
-                if (msg.startsWith("/")) plugin.getServer().dispatchCommand(sender, msg.substring(1));
-                else Bukkit.getOnlinePlayers().forEach(p -> p.sendMessage(msg));
+                for (String msg : messages) {
+                    // Используем broadcastMessage или итерируем по игрокам
+                    Bukkit.broadcastMessage(org.bukkit.ChatColor.translateAlternateColorCodes('&', msg));
+                }
             });
+        }
+
+        // 3. Команды с перехватом вывода
+        synchronized (commandQueue) {
+            if (commandQueue.isEmpty()) return;
+            List<PendingCommand> toProcess = new ArrayList<>(commandQueue);
+            commandQueue.clear();
+
+            for (PendingCommand pending : toProcess) {
+                // Команды ВСЕГДА выполняем в основном потоке
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    InterceptingSender captor = new InterceptingSender();
+
+                    // Выполняем команду
+                    plugin.getServer().dispatchCommand(captor, pending.command);
+
+                    // Собираем ответ
+                    List<String> captured = captor.getCapturedMessages();
+                    String output = captured.isEmpty() ? "---" : String.join("\n", captured);
+
+                    // Очистка от цветовых кодов (§)
+                    output = output.replaceAll("(?i)§[0-9a-fk-orx]", "");
+
+                    // Формируем сообщение
+                    String configMsg = plugin.getConfig().getString("command_sent_message", "{user}, результат:\n{output}");
+                    String finalMsg = configMsg.replace("{user}", pending.senderName).replace("{output}", output);
+
+                    // Отправляем ответ назад в Telegram (асинхронно внутри SendTelegramFUNCTION)
+                    SendTelegramFUNCTION(botToken, pending.chatId, finalMsg);
+                });
+            }
         }
     }
 
     public List<String> getBannedCommands() { return plugin.getConfig().getStringList("banned_commands"); }
     public String getChatID() { return plugin.getConfig().getString("telegram_chat_id"); }
+
+    /**
+     * Внутренний класс для перехвата сообщений консоли
+     */
+    private static class InterceptingSender implements ConsoleCommandSender {
+        private final List<String> capturedMessages = new ArrayList<>();
+        private final ConsoleCommandSender actualConsole = Bukkit.getConsoleSender();
+
+        public List<String> getCapturedMessages() { return capturedMessages; }
+
+        @Override public void sendMessage(@NotNull String message) { capturedMessages.add(message); }
+        @Override public void sendMessage(@NotNull String[] messages) { Collections.addAll(capturedMessages, messages); }
+        @Override public void sendMessage(@Nullable UUID sender, @NotNull String message) { capturedMessages.add(message); }
+        @Override public void sendMessage(@Nullable UUID sender, @NotNull String[] messages) { Collections.addAll(capturedMessages, messages); }
+
+        @Override public boolean isPermissionSet(@NotNull String name) { return actualConsole.isPermissionSet(name); }
+        @Override public boolean isPermissionSet(@NotNull Permission perm) { return actualConsole.isPermissionSet(perm); }
+        @Override public boolean hasPermission(@NotNull String name) { return actualConsole.hasPermission(name); }
+        @Override public boolean hasPermission(@NotNull Permission perm) { return actualConsole.hasPermission(perm); }
+        @Override public boolean isOp() { return true; }
+        @NotNull @Override public Server getServer() { return Bukkit.getServer(); }
+        @NotNull @Override public String getName() { return "TelegramConsole"; }
+        @NotNull @Override public Spigot spigot() { return actualConsole.spigot(); }
+
+        @Override public void setOp(boolean value) {}
+        @NotNull @Override public PermissionAttachment addAttachment(@NotNull Plugin plugin, @NotNull String name, boolean value) { return actualConsole.addAttachment(plugin, name, value); }
+        @NotNull @Override public PermissionAttachment addAttachment(@NotNull Plugin plugin) { return actualConsole.addAttachment(plugin); }
+        @Nullable @Override public PermissionAttachment addAttachment(@NotNull Plugin plugin, @NotNull String name, boolean value, int ticks) { return null; }
+        @Nullable @Override public PermissionAttachment addAttachment(@NotNull Plugin plugin, int ticks) { return null; }
+        @Override public void removeAttachment(@NotNull PermissionAttachment attachment) {}
+        @Override public void recalculatePermissions() {}
+        @NotNull @Override public Set<PermissionAttachmentInfo> getEffectivePermissions() { return actualConsole.getEffectivePermissions(); }
+        @Override public boolean isConversing() { return false; }
+        @Override public void acceptConversationInput(@NotNull String input) {}
+        @Override public boolean beginConversation(@NotNull Conversation conversation) { return false; }
+        @Override public void abandonConversation(@NotNull Conversation conversation) {}
+        @Override public void abandonConversation(@NotNull Conversation conversation, @NotNull ConversationAbandonedEvent event) {}
+        @Override public void sendRawMessage(@NotNull String message) { capturedMessages.add(message); }
+        @Override public void sendRawMessage(@Nullable UUID sender, @NotNull String message) { capturedMessages.add(message); }
+    }
 }

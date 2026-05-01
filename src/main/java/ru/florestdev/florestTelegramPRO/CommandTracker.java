@@ -1,63 +1,73 @@
 package ru.florestdev.florestTelegramPRO;
 
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.plugin.Plugin;
 
-import java.io.IOException;
-import java.net.URI;
 import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.util.List;
 
 public class CommandTracker implements Listener {
 
-    private final Plugin plugin;
+    private final FlorestTelegramPRO main;
     private static final HttpClient httpClient = HttpClient.newHttpClient();
     public final Methods methods;
 
-    public CommandTracker(Plugin plugin, Methods methods) {
-        this.plugin = plugin;
+    public CommandTracker(FlorestTelegramPRO main, Methods methods) {
+        this.main = main;
         this.methods = methods;
     }
 
     public void register() {
-        plugin.getServer().getPluginManager().registerEvents(this, plugin);
-        plugin.getLogger().info("CommandTracker registered!");
+        main.getServer().getPluginManager().registerEvents(this, main);
+        main.getLogger().info("CommandTracker registered!");
     }
 
     public List<String> banned() {
-        return plugin.getConfig().getStringList("blacklist_commands");
+        return main.getConfig().getStringList("blacklist_commands");
     }
 
     public List<String> whitelisted() {
-        return plugin.getConfig().getStringList("whitelist_commands");
+        return main.getConfig().getStringList("whitelist_commands");
     }
 
     @EventHandler
     public void onPlayerCommandPreprocess(PlayerCommandPreprocessEvent event) {
-        if (!event.isCancelled()) {  // Проверка на отмену события (чтобы не обрабатывать отмененные команды)
+        if (!event.isCancelled()) {
             String command = event.getMessage();
-            if (command.startsWith("/")) {  // Проверка, является ли введенный текст командой (начинается с "/")
+            if (command.startsWith("/")) {
+                Player player = event.getPlayer();
+                String commandName = command.split(" ")[0];
+
+                boolean shouldSend = false;
+
                 if (whitelisted().contains("all")) {
-                    if (!banned().contains(command) && !banned().contains(command.split(" ")[0])) {
-                        String token = plugin.getConfig().getString("telegram_bot_token");
-                        String chatId = plugin.getConfig().getString("telegram_chat_id");
-                        String message = plugin.getConfig().getString("human_process_command").replace("{user}", event.getPlayer().getName()).replace("{command}", event.getMessage().split(" ")[0]);
-                        methods.sendTelegramMessage(token, chatId, message);
+                    if (!banned().contains(command) && !banned().contains(commandName)) {
+                        shouldSend = true;
                     }
                 } else {
-                    if (whitelisted().contains(event.getMessage().split(" ")[0])) {
-                        String token = plugin.getConfig().getString("telegram_bot_token");
-                        String chatId = plugin.getConfig().getString("telegram_chat_id");
-                        String message = plugin.getConfig().getString("human_process_command").replace("{user}", event.getPlayer().getName()).replace("{command}", event.getMessage().split(" ")[0]);
-                        methods.sendTelegramMessage(token, chatId, message);
+                    if (whitelisted().contains(commandName)) {
+                        shouldSend = true;
                     }
+                }
+
+                if (shouldSend) {
+                    String token = main.getConfig().getString("telegram_bot_token");
+                    String chatId = main.getConfig().getString("telegram_chat_id");
+                    String message = main.getConfig().getString("human_process_command")
+                            .replace("{user}", player.getName())
+                            .replace("{command}", commandName);
+
+                    // 🔥 ПАРСИМ ПЛЕЙСХОЛДЕРЫ PLACEHOLDERAPI
+                    if (main.placeholderUtil != null) {
+                        message = main.placeholderUtil.parsePlaceholders(player, message);
+                    }
+
+                    methods.sendTelegramMessage(token, chatId, message);
                 }
             }
         }
     }
-
 }

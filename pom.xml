@@ -6,7 +6,7 @@
 
     <groupId>ru.florestdev</groupId>
     <artifactId>floresttelegrampro</artifactId>
-    <version>10.4-stable</version>
+    <version>11.0-stable</version>
     <packaging>jar</packaging>
 
     <name>floresttelegrampro</name>
@@ -56,6 +56,10 @@
             <url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
         </repository>
         <repository>
+            <id>placeholderapi</id>
+            <url>https://repo.extendedclip.com/content/repositories/placeholderapi/</url>
+        </repository>
+        <repository>
             <id>codemc-releases</id>
             <url>https://repo.codemc.io/repository/maven-releases/</url>
         </repository>
@@ -94,9 +98,21 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
+            <groupId>me.clip</groupId>
+            <artifactId>placeholderapi</artifactId>
+            <version>2.11.6</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
             <groupId>io.papermc</groupId>
             <artifactId>paperlib</artifactId>
             <version>1.0.7</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jetbrains</groupId>
+            <artifactId>annotations</artifactId>
+            <version>26.0.2-1</version>
             <scope>compile</scope>
         </dependency>
     </dependencies>

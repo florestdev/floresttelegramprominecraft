@@ -20,6 +20,10 @@ public final class FlorestTelegramPRO extends JavaPlugin {
         return essentials;
     }
 
+    private WebServer server = null;
+    public TelegramReciever telegramReceiver = null;
+    public PlaceholderUtil placeholderUtil = null;
+
     @Override
     public void onEnable() {
         essentials = (Essentials) Bukkit.getPluginManager().getPlugin("Essentials");
@@ -39,7 +43,7 @@ public final class FlorestTelegramPRO extends JavaPlugin {
         }
 
         if (getConfig().getBoolean("enable_advancements")) {
-            AchievementManager achievementManager = new AchievementManager(this, methods);
+            AchievementManager achievementManager = new AchievementManager(this, methods, this);
             getServer().getPluginManager().registerEvents(achievementManager, this);
         }
 
@@ -88,11 +92,27 @@ public final class FlorestTelegramPRO extends JavaPlugin {
             getServer().getPluginManager().disablePlugin(this);
         }
 
-        TelegramReciever telegramReceiver = new TelegramReciever(this, botToken);
+        telegramReceiver = new TelegramReciever(this, botToken);
+
+        if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
+            getLogger().info("✅ PlaceholderAPI найден! Плейсхолдеры будут работать.");
+            placeholderUtil = new PlaceholderUtil();
+        } else {
+            getLogger().info("⚠️ PlaceholderAPI не найден. Плейсхолдеры работать не будут.");
+        }
 
         // Start polling for messages every 5 second
         BukkitScheduler scheduler = getServer().getScheduler();
-        scheduler.runTaskTimerAsynchronously(this, telegramReceiver::processMessages, 0L, 5 * 20L); // 0 delay, 5 seconds period
+        if (getConfig().getString("type-auth").equalsIgnoreCase("polling")) {
+            // Передаем, например, строку или объект
+            scheduler.runTaskTimerAsynchronously(this, () -> telegramReceiver.processMessages(null), 0L, 100L);
+        } else {
+            this.getServer().getScheduler().runTaskAsynchronously(this, () -> {
+                // Весь тяжелый код тут
+                server = new WebServer(this);
+                server.startWebServer();
+            });
+        }
 
         if (getConfig().getBoolean("desc_editing_bool")) {
             Date currentDate = new Date();
@@ -136,5 +156,8 @@ public final class FlorestTelegramPRO extends JavaPlugin {
             getLogger().severe("We didn't send message about server's stopping.");
         }
         getLogger().info("Goodbye, dear server! I'll wait until you start it.");
+        if (server != null) {
+            server.stopWebServer();
+        }
     }
 }
