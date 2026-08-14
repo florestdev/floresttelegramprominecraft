@@ -1,5 +1,5 @@
 name: FlorestTelegramPRO
-version: '11.0-stable'
+version: '12.0-stable'
 main: ru.florestdev.florestTelegramPRO.FlorestTelegramPRO
 api-version: '1.21'
 prefix:  FlorestTelegram
@@ -14,8 +14,14 @@ commands:
     description: Main command of the plugin
     permission-message: Нет права floresttelegram.admin
     permission: floresttelegram.admin
+  2fa:
+    description: 2fa command of FTP
+    aliases:
+      - 2fa_tg
 permissions:
   floresttelegram.admin:
     default: op
     description: Главное разрешение плагина.
+  2fa.admin:
+    default: op
 folia-supported: true

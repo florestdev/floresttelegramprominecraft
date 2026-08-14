@@ -24,6 +24,18 @@ public final class FlorestTelegramPRO extends JavaPlugin {
     public TelegramReciever telegramReceiver = null;
     public PlaceholderUtil placeholderUtil = null;
 
+    private TwoFactorDatabase twoFactorDatabase;
+
+    private TwoFactorHandler twoFactorHandler;
+
+    public TwoFactorDatabase getTwoFactorDatabase() {
+        return twoFactorDatabase;
+    }
+
+    public TwoFactorHandler getTwoFactorHandler() {
+        return  twoFactorHandler;
+    }
+
     @Override
     public void onEnable() {
         essentials = (Essentials) Bukkit.getPluginManager().getPlugin("Essentials");
@@ -36,11 +48,22 @@ public final class FlorestTelegramPRO extends JavaPlugin {
             trackerCommand.register();
         }
         PluginCommand mainCommand = getCommand("floresttelegram");
+        PluginCommand twofactorCommand = getCommand("2fa");
+
         if (mainCommand != null) {
             mainCommand.setExecutor(new CommandHandler(this, methods));
         } else {
             getLogger().warning("Команда /floresttelegram не найдена в plugin.yml!");
         }
+
+        if (twofactorCommand != null) {
+            twofactorCommand.setExecutor(new TwoFactorCommand(this));
+        } else {
+            getLogger().warning("Команда /2fa не найдена в plugin.yml!");
+        }
+
+        this.twoFactorDatabase = new TwoFactorDatabase(this);
+        this.twoFactorHandler = new TwoFactorHandler(this);
 
         if (getConfig().getBoolean("enable_advancements")) {
             AchievementManager achievementManager = new AchievementManager(this, methods, this);
@@ -159,5 +182,6 @@ public final class FlorestTelegramPRO extends JavaPlugin {
         if (server != null) {
             server.stopWebServer();
         }
+        getTwoFactorDatabase().close();
     }
 }

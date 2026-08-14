@@ -11,6 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
 import me.clip.placeholderapi.PlaceholderAPI;
 import org.bukkit.entity.Player;
+import org.json.JSONObject;
 
 public class Methods {
 
@@ -81,6 +82,55 @@ public class Methods {
                     } else {
                         plugin.getLogger().info("Own bad! Not successful editing.");
                     }
+                });
+    }
+
+    public CompletableFuture<Void> sendTelegramMessageToUser(String botToken, String userId, String message) {
+        String url = String.format("https://api.telegram.org/bot%s/sendMessage", botToken);
+
+        // Кодируем параметры
+        String encodedUserId = URLEncoder.encode(userId, StandardCharsets.UTF_8);
+        String encodedMessage = URLEncoder.encode(message, StandardCharsets.UTF_8);
+
+        String requestBody = String.format("chat_id=%s&text=%s", encodedUserId, encodedMessage);
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .header("User-Agent", "FlorestPlugin")
+                .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+                .build();
+
+        return client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+                .thenAccept(response -> {
+                    if (response.statusCode() == 200) {
+                        plugin.getLogger().info("Message sent successfully to user " + userId);
+                    } else {
+                        // Парсим ошибку от Telegram
+                        try {
+                            JSONObject json = new JSONObject(response.body());
+                            String description = json.optString("description", "Unknown error");
+                            plugin.getLogger().severe("Failed to send message to user " + userId +
+                                    ": " + description);
+
+                            // Проверяем конкретные ошибки
+                            if (description.contains("bot was blocked by the user")) {
+                                plugin.getLogger().warning("User " + userId + " blocked the bot!");
+                            } else if (description.contains("user not found")) {
+                                plugin.getLogger().warning("User " + userId + " not found!");
+                            } else if (description.contains("bot can't initiate conversation")) {
+                                plugin.getLogger().warning("User " + userId + " hasn't started the bot!");
+                            }
+                        } catch (Exception e) {
+                            plugin.getLogger().severe("Failed to send message. Status: " + response.statusCode() +
+                                    ", Response: " + response.body());
+                        }
+                    }
+                })
+                .exceptionally(throwable -> {
+                    plugin.getLogger().severe("Error sending message to user " + userId + ": " +
+                            throwable.getMessage());
+                    return null;
                 });
     }
 

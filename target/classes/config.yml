@@ -68,3 +68,14 @@ support_replies_in_tg: false # if true, we can display about reply on Telegram m
 desc_editing_bool: false
 on_online_desc: "Time of last update: {time} | Online: {players_online}/{players_max}"
 off_desc: "Server was closed."
+
+2fa_message: "Hey, {username}! You have got request to enter your account.\nIP: {ip}\n\nCode: {code}\nIf it wasn't you, ignore this message."
+2fa_message_enter: "Hey, {username}! Enter your code from Telegram to enter this session."
+2fa_disabled: "2fa was disabled."
+2fa_connected: "On this TG account {player} made his/her Minecraft 2FA. If it wasn't you, ignore."
+2fa_connected_minecraft: "2FA successfully installed! Please check what you have access to your Telegram account which you entered in the command. If you don't have any access to this TG account, REVOKE THE 2FA RIGHT NOW with command /2fa disable."
+2fa_not_passed: "Bro! Pass the 2FA for this action. Command: /2fa code <CODE FROM TG>"
+2fa_inactive: "2FA is not activated."
+2fa_passed: "2FA is already verified."
+2fa_verified: "You successfully entered your account!"
+2fa_failed: "You failed 2FA. If you lost access to your Telegram account, write to the Server Administration."

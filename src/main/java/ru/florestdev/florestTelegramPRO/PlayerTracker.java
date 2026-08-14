@@ -5,19 +5,18 @@ import net.luckperms.api.model.user.User;
 import net.luckperms.api.node.NodeType;
 import net.luckperms.api.node.types.PrefixNode;
 import org.bukkit.Bukkit;
+import org.bukkit.Effect;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.RegisteredServiceProvider;
+import org.bukkit.potion.PotionEffect;
 
 import java.net.http.HttpClient;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 import java.util.regex.Pattern;
 
 public class PlayerTracker implements Listener {
@@ -82,6 +81,24 @@ public class PlayerTracker implements Listener {
         }
 
         methods.sendTelegramMessage(token, chat_id, message);
+
+        TwoFactorDatabase.TwoFactorData data = main.getTwoFactorDatabase().getByUsername(player.getName());
+
+        if (data != null && data.enabled) {
+            if (data.isBlocked(3, 600000)) {
+                player.kickPlayer("§cСлишком много попыток. Подождите 10 минут.");
+                return;
+            }
+
+            String code = String.format("%06d", new Random().nextInt(1000000));
+            long expires = System.currentTimeMillis() + 120000;
+            main.getTwoFactorDatabase().updateCode(player.getName(), code, expires);
+
+            methods.sendTelegramMessageToUser(token, data.telegramId, main.getConfig().getString("2fa_message").replace("{username}", player.getName()).replace("{ip}", player.getAddress().getAddress().getHostAddress()).replace("{code}", code));
+            main.getTwoFactorHandler().freezePlayer(player);
+        } else {
+            return;
+        }
     }
 
     @EventHandler
@@ -90,6 +107,8 @@ public class PlayerTracker implements Listener {
         String message = main.getConfig().getString("human_quited").replace("{user}", player.getName());
         String token = main.getConfig().getString("telegram_bot_token");
         String chat_id = main.getConfig().getString("telegram_chat_id");
+
+        main.getTwoFactorHandler().unfreezePlayer(event.getPlayer());
 
         if (main.getConfig().getBoolean("desc_editing_bool")) {
             Bukkit.getScheduler().runTaskLaterAsynchronously(main, () -> {

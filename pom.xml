@@ -6,7 +6,7 @@
 
     <groupId>ru.florestdev</groupId>
     <artifactId>floresttelegrampro</artifactId>
-    <version>11.0-stable</version>
+    <version>12.0-stable</version>
     <packaging>jar</packaging>
 
     <name>floresttelegrampro</name>
@@ -76,6 +76,18 @@
             <id>papermc</id>
             <url>https://repo.papermc.io/repository/maven-public/</url>
         </repository>
+        <repository>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
+        </repository>
+        <repository>
+            <id>playpro-repo</id>
+            <url>https://maven.playpro.com/</url>
+        </repository>
+        <repository>
+            <id>enginehub-repo</id>
+            <url>https://maven.enginehub.org/repo/</url>
+        </repository>
     </repositories>
 
     <dependencies>
@@ -86,10 +98,25 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
+            <version>5.1.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.xerial</groupId>
+            <artifactId>sqlite-jdbc</artifactId>
+            <version>3.45.2.0</version>
+        </dependency>
+        <dependency>
             <groupId>net.luckperms</groupId>
             <artifactId>api</artifactId>
             <version>5.4</version>
             <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.json</groupId>
+            <artifactId>json</artifactId>
+            <version>20231013</version>
         </dependency>
         <dependency>
             <groupId>net.essentialsx</groupId>
