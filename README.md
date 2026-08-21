@@ -6,7 +6,7 @@
 
 [![Java](https://img.shields.io/badge/Java-24-red.svg)]()
 [![Minecraft](https://img.shields.io/badge/Minecraft-1.21+-green.svg)]()
-[![Version](https://img.shields.io/badge/version-11.0--stable-brightgreen.svg)]()
+[![Version](https://img.shields.io/badge/version-12.0--stable-brightgreen.svg)]()
 [![License](https://img.shields.io/badge/license-Unlicense-darkgreen.svg)]()
 
 ## ✅ Возможности
