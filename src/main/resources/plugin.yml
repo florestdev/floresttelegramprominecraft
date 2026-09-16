@@ -1,5 +1,5 @@
 name: FlorestTelegramPRO
-version: '12.0-stable'
+version: '13.0-stable'
 main: ru.florestdev.florestTelegramPRO.FlorestTelegramPRO
 api-version: '1.21'
 prefix:  FlorestTelegram

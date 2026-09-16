@@ -21,7 +21,7 @@ public final class FlorestTelegramPRO extends JavaPlugin {
     }
 
     private WebServer server = null;
-    public TelegramReciever telegramReceiver = null;
+    public TelegramReceiver telegramReceiver = null;
     public PlaceholderUtil placeholderUtil = null;
 
     private TwoFactorDatabase twoFactorDatabase;
@@ -115,7 +115,7 @@ public final class FlorestTelegramPRO extends JavaPlugin {
             getServer().getPluginManager().disablePlugin(this);
         }
 
-        telegramReceiver = new TelegramReciever(this, botToken);
+        telegramReceiver = new TelegramReceiver(this, botToken);
 
         if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
             getLogger().info("✅ PlaceholderAPI найден! Плейсхолдеры будут работать.");
