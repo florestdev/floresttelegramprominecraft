@@ -6,7 +6,7 @@
 
     <groupId>ru.florestdev</groupId>
     <artifactId>floresttelegrampro</artifactId>
-    <version>12.0-stable</version>
+    <version>13.0-stable</version>
     <packaging>jar</packaging>
 
     <name>floresttelegrampro</name>
@@ -38,6 +38,44 @@
                         <goals>
                             <goal>shade</goal>
                         </goals>
+                        <configuration>
+                            <!-- Отключаем создание уменьшенного POM -->
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+
+                            <!-- Какие зависимости включаем -->
+                            <artifactSet>
+                                <includes>
+                                    <include>com.zaxxer:HikariCP</include>
+                                    <include>org.xerial:sqlite-jdbc</include>
+                                    <include>org.json:json</include>
+                                    <include>io.papermc:paperlib</include>
+                                    <include>org.jetbrains:annotations</include>
+                                </includes>
+                            </artifactSet>
+
+                            <!-- Перемещаем библиотеки в отдельный пакет, чтобы избежать конфликтов -->
+                            <relocations>
+                                <relocation>
+                                    <pattern>com.zaxxer.hikari</pattern>
+                                    <shadedPattern>ru.florestdev.florestTelegramPRO.libs.hikari</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.sqlite</pattern>
+                                    <shadedPattern>ru.florestdev.florestTelegramPRO.libs.sqlite</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.json</pattern>
+                                    <shadedPattern>ru.florestdev.florestTelegramPRO.libs.json</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>io.papermc.lib</pattern>
+                                    <shadedPattern>ru.florestdev.florestTelegramPRO.libs.paperlib</shadedPattern>
+                                </relocation>
+                            </relocations>
+
+                            <!-- Минимизация отключена, чтобы точно все попало -->
+                            <minimizeJar>false</minimizeJar>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
@@ -91,51 +129,68 @@
     </repositories>
 
     <dependencies>
+        <!-- Spigot API (предоставляется сервером) -->
         <dependency>
             <groupId>org.spigotmc</groupId>
             <artifactId>spigot-api</artifactId>
             <version>1.20-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
+
+        <!-- HikariCP - пул соединений с БД (БУДЕТ ЗАШЕЙДЕН) -->
         <dependency>
             <groupId>com.zaxxer</groupId>
             <artifactId>HikariCP</artifactId>
             <version>5.1.0</version>
         </dependency>
+
+        <!-- SQLite JDBC драйвер (БУДЕТ ЗАШЕЙДЕН) -->
         <dependency>
             <groupId>org.xerial</groupId>
             <artifactId>sqlite-jdbc</artifactId>
             <version>3.45.2.0</version>
         </dependency>
+
+        <!-- LuckPerms API (предоставляется сервером) -->
         <dependency>
             <groupId>net.luckperms</groupId>
             <artifactId>api</artifactId>
             <version>5.4</version>
             <scope>provided</scope>
         </dependency>
+
+        <!-- JSON библиотека (БУДЕТ ЗАШЕЙДЕНА) -->
         <dependency>
             <groupId>org.json</groupId>
             <artifactId>json</artifactId>
             <version>20231013</version>
         </dependency>
+
+        <!-- EssentialsX API (предоставляется сервером) -->
         <dependency>
             <groupId>net.essentialsx</groupId>
             <artifactId>EssentialsX</artifactId>
             <version>2.20.1</version>
             <scope>provided</scope>
         </dependency>
+
+        <!-- PlaceholderAPI (предоставляется сервером) -->
         <dependency>
             <groupId>me.clip</groupId>
             <artifactId>placeholderapi</artifactId>
             <version>2.11.6</version>
             <scope>provided</scope>
         </dependency>
+
+        <!-- PaperLib (БУДЕТ ЗАШЕЙДЕН) -->
         <dependency>
             <groupId>io.papermc</groupId>
             <artifactId>paperlib</artifactId>
             <version>1.0.7</version>
             <scope>compile</scope>
         </dependency>
+
+        <!-- JetBrains аннотации (БУДУТ ЗАШЕЙДЕНЫ) -->
         <dependency>
             <groupId>org.jetbrains</groupId>
             <artifactId>annotations</artifactId>
