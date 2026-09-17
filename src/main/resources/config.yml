@@ -79,3 +79,5 @@ off_desc: "Server was closed."
 2fa_passed: "2FA is already verified."
 2fa_verified: "You successfully entered your account!"
 2fa_failed: "You failed 2FA. If you lost access to your Telegram account, write to the Server Administration."
+
+tg_discord_message: "[Telegram] {telegram_name} -> {telegram_message}"

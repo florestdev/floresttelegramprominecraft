@@ -36,6 +36,12 @@ public final class FlorestTelegramPRO extends JavaPlugin {
         return  twoFactorHandler;
     }
 
+    public TGToDiscord tgToDiscord;
+
+    public void updateTgToDiscord(TGToDiscord tgToDiscord) {
+        this.tgToDiscord = tgToDiscord;
+    }
+
     @Override
     public void onEnable() {
         essentials = (Essentials) Bukkit.getPluginManager().getPlugin("Essentials");
@@ -123,6 +129,8 @@ public final class FlorestTelegramPRO extends JavaPlugin {
         } else {
             getLogger().info("⚠️ PlaceholderAPI не найден. Плейсхолдеры работать не будут.");
         }
+
+        this.getServer().getPluginManager().registerEvents(new ServerStarted(this), this);
 
         // Start polling for messages every 5 second
         BukkitScheduler scheduler = getServer().getScheduler();

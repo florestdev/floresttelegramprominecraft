@@ -6,7 +6,7 @@
 
     <groupId>ru.florestdev</groupId>
     <artifactId>floresttelegrampro</artifactId>
-    <version>13.0-stable</version>
+    <version>14.0-stable</version>
     <packaging>jar</packaging>
 
     <name>floresttelegrampro</name>
@@ -134,6 +134,14 @@
             <groupId>org.spigotmc</groupId>
             <artifactId>spigot-api</artifactId>
             <version>1.20-R0.1-SNAPSHOT</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- FlorestDiscordPRO API -->
+        <dependency>
+            <groupId>com.github.florestdev</groupId>
+            <artifactId>florestdiscordpro</artifactId>
+            <version>1.2</version>
             <scope>provided</scope>
         </dependency>
 

@@ -153,6 +153,11 @@ public class TelegramReceiver {
         String userId = msg.getAsJsonObject("from").get("id").getAsString();
         String chatId = msg.getAsJsonObject("chat").get("id").getAsString();
 
+        // сразу в дс
+        if (plugin.tgToDiscord != null) {
+            plugin.tgToDiscord.sendMessage(from, text);
+        }
+
         // Кэшируем (это безопасно делать асинхронно)
         messageCache.put(msgId, new CachedMessage(from, text));
 
