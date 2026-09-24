@@ -78,4 +78,23 @@ The Unlicensed — бесплатно, открыто
 
 ---
 
-**БЕТА** → Баги и идеи пиши в GitHub Issues
+# Подключение к своему плагину. API.
+
+```
+<repositories>
+		<repository>
+		    <id>jitpack.io</id>
+		    <url>https://jitpack.io</url>
+		</repository>
+	</repositories>
+```
+```
+<dependency>
+	    <groupId>com.github.florestdev</groupId>
+	    <artifactId>floresttelegramprominecraft</artifactId>
+	    <version>14.0-stable</version>
+	</dependency>
+```
+---
+
+Баги и идеи пиши в GitHub Issues
