@@ -13,6 +13,8 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.potion.PotionEffect;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import java.net.http.HttpClient;
 import java.text.SimpleDateFormat;
@@ -94,7 +96,32 @@ public class PlayerTracker implements Listener {
             long expires = System.currentTimeMillis() + 120000;
             main.getTwoFactorDatabase().updateCode(player.getName(), code, expires);
 
-            methods.sendTelegramMessageToUser(token, data.telegramId, main.getConfig().getString("2fa_message").replace("{username}", player.getName()).replace("{ip}", player.getAddress().getAddress().getHostAddress()).replace("{code}", code));
+            String username = player.getName();
+
+            String copyCodeKeyboard = new JSONObject()
+                    .put("inline_keyboard", new JSONArray()
+                            .put(new JSONArray()
+                                    .put(new JSONObject()
+                                            .put("text", main.getConfig().getString("button_accept_login"))
+                                            .put("callback_data", username + "|its_me"))
+                                    .put(new JSONObject()
+                                            .put("text", main.getConfig().getString("button_its_not_me"))
+                                            .put("callback_data", username + "|its_not_me")))
+                            .put(new JSONArray()
+                                    .put(new JSONObject()
+                                            .put("text", main.getConfig().getString("button_copy_code"))
+                                            .put("copy_text", new JSONObject().put("text", code)))))
+                    .toString();
+
+            methods.sendTelegramMessageToUser(
+                    token,
+                    data.telegramId,
+                    main.getConfig().getString("2fa_message")
+                            .replace("{username}", username)
+                            .replace("{ip}", player.getAddress().getAddress().getHostAddress())
+                            .replace("{code}", code),
+                    copyCodeKeyboard
+            );
             main.getTwoFactorHandler().freezePlayer(player);
         } else {
             return;

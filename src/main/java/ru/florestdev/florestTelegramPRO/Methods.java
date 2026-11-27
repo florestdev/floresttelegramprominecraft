@@ -86,19 +86,33 @@ public class Methods {
     }
 
     public CompletableFuture<Void> sendTelegramMessageToUser(String botToken, String userId, String message) {
+        return sendTelegramMessageToUser(botToken, userId, message, null);
+    }
+
+    /**
+     * @param inlineKeyboard JSON-строка reply_markup, например:
+     *                       {"inline_keyboard":[[{"text":"Это я","callback_data":"Nick|its_me"},
+     *                                            {"text":"Это не я","callback_data":"Nick|its_not_me"}]]}
+     *                       Можно передать null — тогда отправится обычное сообщение.
+     */
+    public CompletableFuture<Void> sendTelegramMessageToUser(String botToken, String userId,
+                                                             String message, String inlineKeyboard) {
         String url = String.format("https://api.telegram.org/bot%s/sendMessage", botToken);
 
-        // Кодируем параметры
-        String encodedUserId = URLEncoder.encode(userId, StandardCharsets.UTF_8);
-        String encodedMessage = URLEncoder.encode(message, StandardCharsets.UTF_8);
+        StringBuilder requestBody = new StringBuilder()
+                .append("chat_id=").append(URLEncoder.encode(userId, StandardCharsets.UTF_8))
+                .append("&text=").append(URLEncoder.encode(message, StandardCharsets.UTF_8));
 
-        String requestBody = String.format("chat_id=%s&text=%s", encodedUserId, encodedMessage);
+        if (inlineKeyboard != null && !inlineKeyboard.isBlank()) {
+            requestBody.append("&reply_markup=")
+                    .append(URLEncoder.encode(inlineKeyboard, StandardCharsets.UTF_8));
+        }
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
                 .header("Content-Type", "application/x-www-form-urlencoded")
                 .header("User-Agent", "FlorestPlugin")
-                .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+                .POST(HttpRequest.BodyPublishers.ofString(requestBody.toString()))
                 .build();
 
         return client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
@@ -106,20 +120,22 @@ public class Methods {
                     if (response.statusCode() == 200) {
                         plugin.getLogger().info("Message sent successfully to user " + userId);
                     } else {
-                        // Парсим ошибку от Telegram
                         try {
                             JSONObject json = new JSONObject(response.body());
                             String description = json.optString("description", "Unknown error");
                             plugin.getLogger().severe("Failed to send message to user " + userId +
                                     ": " + description);
 
-                            // Проверяем конкретные ошибки
                             if (description.contains("bot was blocked by the user")) {
                                 plugin.getLogger().warning("User " + userId + " blocked the bot!");
                             } else if (description.contains("user not found")) {
                                 plugin.getLogger().warning("User " + userId + " not found!");
                             } else if (description.contains("bot can't initiate conversation")) {
                                 plugin.getLogger().warning("User " + userId + " hasn't started the bot!");
+                            } else if (description.contains("BUTTON_URL_INVALID")
+                                    || description.contains("BUTTON_DATA_INVALID")) {
+                                plugin.getLogger().warning("Invalid inline keyboard for user " + userId +
+                                        ": " + description);
                             }
                         } catch (Exception e) {
                             plugin.getLogger().severe("Failed to send message. Status: " + response.statusCode() +

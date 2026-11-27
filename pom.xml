@@ -6,7 +6,7 @@
 
     <groupId>ru.florestdev</groupId>
     <artifactId>floresttelegrampro</artifactId>
-    <version>14.0-stable</version>
+    <version>15.0-stable</version>
     <packaging>jar</packaging>
 
     <name>floresttelegrampro</name>
@@ -28,6 +28,7 @@
                     <target>${java.version}</target>
                 </configuration>
             </plugin>
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
@@ -39,21 +40,21 @@
                             <goal>shade</goal>
                         </goals>
                         <configuration>
-                            <!-- Отключаем создание уменьшенного POM -->
                             <createDependencyReducedPom>false</createDependencyReducedPom>
-
-                            <!-- Какие зависимости включаем -->
-                            <artifactSet>
-                                <includes>
-                                    <include>com.zaxxer:HikariCP</include>
-                                    <include>org.xerial:sqlite-jdbc</include>
-                                    <include>org.json:json</include>
-                                    <include>io.papermc:paperlib</include>
-                                    <include>org.jetbrains:annotations</include>
-                                </includes>
-                            </artifactSet>
-
-                            <!-- Перемещаем библиотеки в отдельный пакет, чтобы избежать конфликтов -->
+                            <minimizeJar>false</minimizeJar>
+                            <shadedArtifactAttached>false</shadedArtifactAttached>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                        <exclude>META-INF/MANIFEST.MF</exclude>
+                                        <exclude>module-info.class</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
                             <relocations>
                                 <relocation>
                                     <pattern>com.zaxxer.hikari</pattern>
@@ -72,14 +73,18 @@
                                     <shadedPattern>ru.florestdev.florestTelegramPRO.libs.paperlib</shadedPattern>
                                 </relocation>
                             </relocations>
-
-                            <!-- Минимизация отключена, чтобы точно все попало -->
-                            <minimizeJar>false</minimizeJar>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <mainClass>ru.florestdev.florestTelegramPRO.FlorestTelegramPRO</mainClass>
+                                </transformer>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                            </transformers>
                         </configuration>
                     </execution>
                 </executions>
             </plugin>
         </plugins>
+
         <resources>
             <resource>
                 <directory>src/main/resources</directory>
@@ -145,14 +150,14 @@
             <scope>provided</scope>
         </dependency>
 
-        <!-- HikariCP - пул соединений с БД (БУДЕТ ЗАШЕЙДЕН) -->
+        <!-- HikariCP (шейдится) -->
         <dependency>
             <groupId>com.zaxxer</groupId>
             <artifactId>HikariCP</artifactId>
             <version>5.1.0</version>
         </dependency>
 
-        <!-- SQLite JDBC драйвер (БУДЕТ ЗАШЕЙДЕН) -->
+        <!-- SQLite JDBC (шейдится) -->
         <dependency>
             <groupId>org.xerial</groupId>
             <artifactId>sqlite-jdbc</artifactId>
@@ -167,11 +172,11 @@
             <scope>provided</scope>
         </dependency>
 
-        <!-- JSON библиотека (БУДЕТ ЗАШЕЙДЕНА) -->
+        <!-- JSON (шейдится + relocated) -->
         <dependency>
             <groupId>org.json</groupId>
             <artifactId>json</artifactId>
-            <version>20231013</version>
+            <version>20240303</version>
         </dependency>
 
         <!-- EssentialsX API (предоставляется сервером) -->
@@ -190,7 +195,7 @@
             <scope>provided</scope>
         </dependency>
 
-        <!-- PaperLib (БУДЕТ ЗАШЕЙДЕН) -->
+        <!-- PaperLib (шейдится) -->
         <dependency>
             <groupId>io.papermc</groupId>
             <artifactId>paperlib</artifactId>
@@ -198,7 +203,7 @@
             <scope>compile</scope>
         </dependency>
 
-        <!-- JetBrains аннотации (БУДУТ ЗАШЕЙДЕНЫ) -->
+        <!-- JetBrains аннотации (шейдятся) -->
         <dependency>
             <groupId>org.jetbrains</groupId>
             <artifactId>annotations</artifactId>

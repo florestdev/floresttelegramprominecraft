@@ -69,6 +69,7 @@ desc_editing_bool: false
 on_online_desc: "Time of last update: {time} | Online: {players_online}/{players_max}"
 off_desc: "Server was closed."
 
+# 2fa
 2fa_message: "Hey, {username}! You have got request to enter your account.\nIP: {ip}\n\nCode: {code}\nIf it wasn't you, ignore this message."
 2fa_message_enter: "Hey, {username}! Enter your code from Telegram to enter this session."
 2fa_disabled: "2fa was disabled."
@@ -79,5 +80,12 @@ off_desc: "Server was closed."
 2fa_passed: "2FA is already verified."
 2fa_verified: "You successfully entered your account!"
 2fa_failed: "You failed 2FA. If you lost access to your Telegram account, write to the Server Administration."
+2fa_btn_its_not_me: "Your login was declined by Telegram client. If your TG account was crashed/hacked, write on admin's resources."
 
+# Buttons
+button_copy_code: "Copy code"
+button_its_not_me: "It's not me"
+button_accept_login: "Login without code"
+
+# Discord-TG bridge
 tg_discord_message: "[Telegram] {telegram_name} -> {telegram_message}"

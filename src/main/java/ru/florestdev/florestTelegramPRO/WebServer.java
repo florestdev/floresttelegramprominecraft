@@ -43,6 +43,8 @@ public class WebServer {
                 tg.telegramReceiver.handleEdited(upd.getAsJsonObject("edited_message"), messages);
             } else if (upd.has("message_reaction")) {
                 tg.telegramReceiver.handleReaction(upd.getAsJsonObject("message_reaction"), messages);
+            } else if (upd.has("callback_query")) {
+                tg.telegramReceiver.handleButton(upd.getAsJsonObject("callback_query"), messages);
             }
 
         } catch (Exception e) {
@@ -56,14 +58,15 @@ public class WebServer {
             try {
                 String token = tg.getConfig().getString("telegram_bot_token");
                 String webhookUrl = tg.getConfig().getString("webhook-url");
-                String allowedUpdates = "[\"message\",\"edited_message\",\"message_reaction\"]";
+                String allowedUpdates = URLEncoder.encode(
+                        "[\"message\",\"edited_message\",\"message_reaction\",\"callback_query\"]",
+                        StandardCharsets.UTF_8);
 
                 String requestUrl = String.format(
                         "https://api.telegram.org/bot%s/setWebhook?url=%s&allowed_updates=%s",
                         token,
                         URLEncoder.encode(webhookUrl, StandardCharsets.UTF_8),
-                        URLEncoder.encode(allowedUpdates, StandardCharsets.UTF_8)
-                );
+                        allowedUpdates);  // ← без повторного encode
 
                 java.net.HttpURLConnection conn = (java.net.HttpURLConnection) new java.net.URL(requestUrl).openConnection();
                 conn.setRequestMethod("GET");

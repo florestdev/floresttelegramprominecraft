@@ -113,7 +113,7 @@ public class TelegramReceiver {
     public List<String> getNewMessages() {
         List<String> messages = new ArrayList<>();
         try {
-            String allowed = URLEncoder.encode("[\"message\",\"edited_message\",\"message_reaction\"]", StandardCharsets.UTF_8);
+            String allowed = URLEncoder.encode("[\"message\",\"edited_message\",\"message_reaction\",\"callback_query\"]", StandardCharsets.UTF_8);
             String url = "https://api.telegram.org/bot" + botToken + "/getUpdates?offset=" + (lastUpdateId + 1) + "&allowed_updates=" + allowed;
 
             HttpRequest request = HttpRequest.newBuilder().uri(URI.create(url)).GET().build();
@@ -137,10 +137,54 @@ public class TelegramReceiver {
                     handleEdited(upd.getAsJsonObject("edited_message"), messages);
                 } else if (upd.has("message_reaction")) {
                     handleReaction(upd.getAsJsonObject("message_reaction"), messages);
+                } else  if (upd.has("callback_query")) {
+                    handleButton(upd.getAsJsonObject("callback_query"), messages);
                 }
             }
         } catch (Exception ignored) {}
         return messages;
+    }
+
+    public void handleButton(JsonObject msg, List<String> out) {
+        try {
+            String data = msg.get("data").getAsString();
+            long id = msg.getAsJsonObject("from").get("id").getAsLong();
+
+            String[] instruction = data.split("\\|");
+            if (instruction.length < 2) return;
+
+            String username = instruction[0];
+            String command = instruction[1];
+
+            TwoFactorDatabase.TwoFactorData data2 = plugin.getTwoFactorDatabase().getByUsername(username);
+            if (data2 == null || data2.telegramId == null) return;
+            if (!data2.telegramId.equals(String.valueOf(id))) return;
+
+            String callbackId = msg.get("id").getAsString();
+
+            // Всё, что трогает игрока — строго в главном потоке
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                try {
+                    Player player = plugin.getServer().getPlayerExact(username);
+                    if (player == null || !player.isOnline()) return;
+
+                    if (command.equals("its_not_me")) {
+                        player.kickPlayer(plugin.getConfig().getString("2fa_btn_its_not_me"));
+                    } else if (command.equals("its_me")) {
+                        plugin.getTwoFactorHandler().unfreezePlayer(player);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            });
+
+            // Ответ на callback можно отправлять асинхронно (это HTTP)
+            plugin.methods.makeApiRequest(botToken, "answerCallbackQuery",
+                    "callback_query_id=" + callbackId);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public void handleMessage(JsonObject msg, List<String> out) {
